@@ -21,6 +21,11 @@ python3 -m venv vonado-bricks
 source vonado-bricks/bin/activate
 ```
 
+install the requirements:
+```
+pip install -r requirements.txt
+```
+
 Copy the sample input file:
 ```
 cp input.txt.sample input.txt
