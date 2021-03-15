@@ -14,6 +14,11 @@ for aline in infile:
     try:
 
         blID = values[0]
+        elementID = ""
+        partName = ""
+        partColor = ""
+        partQty = ""
+
         if len(values) > 1:
             elementID = values[1]
             partName = values[2]
@@ -42,6 +47,7 @@ for aline in infile:
         
         if len(tags) > 0:
             print(f"{blID} - {elementID} - {partName} : Part not found")
+            fileWriter.writerow([blID, elementID, partName, partColor, partQty])
         else:
             tags = res.findAll("a", {"class": ["product photo product-item-photo"]})
             if len(tags) > 0:
