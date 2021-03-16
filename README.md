@@ -2,7 +2,7 @@ So you have a list of bricks from some MOC or something and you want to find out
 
 There's a lot of them, so all the clicking is a pain.
 
-This dumb script can help.
+This dumb script can help.  It's pretty brittle and works for me.
 
 ## Assumptions:
 - You have a tab-delimited list of bricks. This can be either one Bricklink Item Number per line OR my typical format of BLItemNo, ElementId, PartName, ColorName, Qty.
@@ -50,16 +50,29 @@ The terminal output shows output with Bricklink ID and URL [or "Part Not Found":
 3023 : https://www.vonado.com/plate-1x2-3023.html
 ```
 
-It also writes an `output.csv` that contains more information:
+It also writes an `output.csv` that contains more information.  
+Fields are:
+- Bricklink ID
+- Element ID
+- Part Name
+- Color Name
+- Quantity needed
+- Lots to buy [assuming lots of 10]
+- Price per lot
+- Total cost
+- link to part on Vonado
 ```
- $ cat output.csv
-2429		Hinge Plate 1 x 4 Swivel Base	Black	1
-2430		Hinge Plate 1 x 4 Swivel Top	Black	1
-2540	4140588	Plate, Modified 1 x 2 with Handle on Side - Free Ends	Black	1	https://www.vonado.com/plate-1x2-w-stick-2540.html
-2921	6170566	Brick, Modified 1 x 1 with Handle	Black	1	https://www.vonado.com/1x1-technic-changeover-catch-2921-28917.html
-3004	4211088	Brick 1 x 2	Dark Bluish Gray	1	https://www.vonado.com/brick-1x2-3004.html
-3020	4211065	Plate 2 x 4	Dark Bluish Gray	1	https://www.vonado.com/plate-2x4-3020.html
-3023	4211063	Plate 1 x 2	Dark Bluish Gray	1	https://www.vonado.com/plate-1x2-3023.html
+ $ head output.csv
+2429		Hinge Plate 1 x 4 Swivel Base	Black	1	1
+2430		Hinge Plate 1 x 4 Swivel Top	Black	1	1
+2444	244426	Plate, Modified 2 x 2 with Pin Hole	Black	1	1
+2540	4140588	Plate, Modified 1 x 2 with Handle on Side - Free Ends	Black	1	1	0.36	0.36	https://www.vonado.com/plate-1x2-w-stick-2540.html
+2921	6170566	Brick, Modified 1 x 1 with Handle	Black	1	1	0.36	0.36	https://www.vonado.com/1x1-technic-changeover-catch-2921-28917.html
+3004	4211088	Brick 1 x 2	Dark Bluish Gray	1	1	0.55	0.55	https://www.vonado.com/brick-1x2-3004.html
+3007	6037390	Brick 2 x 8	Black	1	1
+3020	4211065	Plate 2 x 4	Dark Bluish Gray	1	1	0.82	0.82	https://www.vonado.com/plate-2x4-3020.html
+3023	4211063	Plate 1 x 2	Dark Bluish Gray	1	1	0.36	0.36	https://www.vonado.com/plate-1x2-3023.html
+3030	303026	Plate 4 x 10 	Black	1	1	2.91	2.91	https://www.vonado.com/plate-4x10-3030.html
 ```
 
 ## Notes:
@@ -106,6 +119,6 @@ Then the possible pain point is that this list will imply it's available at Vona
 
 - ~~Calc how many lots you need to buy (should be trivial if all parts are in lots of ten but I don't know that to be true)~~
 - Make the input file parsing a little more robust.
-- Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS]
+- Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS; also problematic since the color numbers at Vonado appear to be LEGO, but the names are Bricklink]
 - ~~Calc ballpark cost~~
 - Add parts to a shopping cart
