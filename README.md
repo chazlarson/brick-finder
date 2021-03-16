@@ -18,6 +18,8 @@ Clone the repo.
 git clone https://github.com/chazlarson/vonado-bricks.git && cd vonado-bricks
 ```
 
+There's a `quick-test.sh` that will run through the rest of this for both sample input files [it creates and deletes the venv] if you just want to watch it.
+
 Create and activate a virtual environment:
 ```
 python3 -m venv vonado-bricks
@@ -65,6 +67,7 @@ Part,Color,Quantity,lotCount,unit_price,total_price,link
 99780,0,3,1,0.55,0.55,https://www.vonado.com/angular-plate-1-5-bot-1x2-1-2-99780.html
 10201,0,2
 ```
+
 
 ## Notes:
 
