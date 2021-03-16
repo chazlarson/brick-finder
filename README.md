@@ -104,8 +104,8 @@ Then the possible pain point is that this list will imply it's available at Vona
 
 ## Roadmap
 
-- Calc how many lots you need to buy (should be trivial if all parts are in lots of ten but I don't know that to be true)
+- ~~Calc how many lots you need to buy (should be trivial if all parts are in lots of ten but I don't know that to be true)~~
 - Make the input file parsing a little more robust.
-- Verify color availability
-- Calc ballpark cost
+- Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS]
+- ~~Calc ballpark cost~~
 - Add parts to a shopping cart
