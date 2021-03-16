@@ -81,7 +81,7 @@ This script invokes a search just like the search field on the Vonado website.  
 
 You only want the first, so a match is considered: "contains the bricklink ID, preceded by a dash, followed by a dash or period"
 
-In this specific case, the "moc" filter is redundant, but it could be that soem moc will have the same number as a part, so belt-and-suspenders.
+In this specific case, the "moc" filter is redundant, but it could be that some MOC will have the same number as a part, so belt-and-suspenders.
 
 This means that "Part not found" doesn't *necessarily* mean the part isn't on Vonado, but the script will cut down the number of parts you need to search for manually.
 
@@ -92,7 +92,7 @@ For example:
 That part *is* on Vonado:
 https://www.vonado.com/plate-2x2-one-hule-4-8-10247.html
 
-But the URL doesn't contain the BLID [or really anything one could use to match them], so it shows up here as "not found"
+But the URL doesn't contain the Bricklink ID [or really anything one could use to match them], so it shows up here as "not found"
 
 Currently no attention is paid to color.  If you have two colors of the part in your list:
 ```
@@ -109,10 +109,23 @@ You'll get two lines in the output (and two rows in the output file):
 
 Then the possible pain point is that this list will imply it's available at Vonado but you'll go there and find out it's not avaiable in Light Bluish Grey or whatever.
 
-## Roadmap
+Color is tricky.  Vonado *seems* to use LEGO color IDs and Bricklink/Rebrickable color names:
 
-- Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS; also problematic since the color numbers at Vonado appear to be LEGO, but the names are Bricklink]
+For example:
+
+![image](https://user-images.githubusercontent.com/3865541/111374320-f4ffeb00-866a-11eb-9e6d-eae511fa42fb.png)
+
+Two names and four numbers for the same color:
+
+![image](https://user-images.githubusercontent.com/3865541/111374636-588a1880-866b-11eb-8151-08167ca001d3.png)
+
+Source: https://rebrickable.com/colors/
+
+## Future possibilities
+
+- Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS; also hampered by remarks above about vagary in color names and numbers]
 - Add parts to a shopping cart
+- Read and/or produce Excel docs
 - ~~Calc how many lots you need to buy (should be trivial if all parts are in lots of ten but I don't know that to be true)~~
 - ~~Make the input file parsing a little more robust.~~ Now uses Rebrickable CSV as default.
 - ~~Calc ballpark cost~~
