@@ -4,8 +4,11 @@ There's a lot of them, so all the clicking is a pain.
 
 This dumb script can help.  It's pretty brittle and works for me.
 
+ATENTION - BREAKING CHANGE: 
+The default input format is now Rebrickable CSV.  My goofy private format is retired for now.
+
 ## Assumptions:
-- You have a tab-delimited list of bricks. This can be either one Bricklink Item Number per line OR my typical format of BLItemNo, ElementId, PartName, ColorName, Qty.
+- You have a list of bricks in Rebrickable CSV format. [It can also be a list of one Bricklink ID per line]
 - Python 3
 - Running Linux or Mac OS X  [That's only if you're going to copy-paste the commands here; no reason this won't run on Windows]
 
@@ -39,40 +42,28 @@ python vonado-bricks.py
 The terminal output shows output with Bricklink ID and URL [or "Part Not Found":
 ```
  $ python vonado-bricks.py
-2429 -  - Hinge Plate 1 x 4 Swivel Base : Part not found
-2430 -  - Hinge Plate 1 x 4 Swivel Top : Part not found
-2444 - 244426 - Plate, Modified 2 x 2 with Pin Hole : Part not found
-2540 : https://www.vonado.com/plate-1x2-w-stick-2540.html
-2921 : https://www.vonado.com/1x1-technic-changeover-catch-2921-28917.html
-3004 : https://www.vonado.com/brick-1x2-3004.html
-3007 - 6037390 - Brick 2 x 8 : Part not found
-3020 : https://www.vonado.com/plate-2x4-3020.html
-3023 : https://www.vonado.com/plate-1x2-3023.html
+87994 : Part not found
+30374 : Part not found
+63965 : https://www.vonado.com/stick-6m-w-flange-63965.html
+11090 : https://www.vonado.com/bar-holder-with-clip-11090.html
+23443 : https://www.vonado.com/3-2-shaft-w-3-2-hole-23443.html
+99781 : https://www.vonado.com/angular-plate-1-5-top-1x2-1-2-99781.html
+99780 : https://www.vonado.com/angular-plate-1-5-bot-1x2-1-2-99780.html
+10201 : Part not found
 ```
 
-It also writes an `output.csv` that contains more information.  
-Fields are:
-- Bricklink ID
-- Element ID
-- Part Name
-- Color Name
-- Quantity needed
-- Lots to buy [assuming lots of 10]
-- Price per lot
-- Total cost
-- link to part on Vonado
+It also writes an `output.txt` that contains more information:
 ```
- $ head output.csv
-2429		Hinge Plate 1 x 4 Swivel Base	Black	1	1
-2430		Hinge Plate 1 x 4 Swivel Top	Black	1	1
-2444	244426	Plate, Modified 2 x 2 with Pin Hole	Black	1	1
-2540	4140588	Plate, Modified 1 x 2 with Handle on Side - Free Ends	Black	1	1	0.36	0.36	https://www.vonado.com/plate-1x2-w-stick-2540.html
-2921	6170566	Brick, Modified 1 x 1 with Handle	Black	1	1	0.36	0.36	https://www.vonado.com/1x1-technic-changeover-catch-2921-28917.html
-3004	4211088	Brick 1 x 2	Dark Bluish Gray	1	1	0.55	0.55	https://www.vonado.com/brick-1x2-3004.html
-3007	6037390	Brick 2 x 8	Black	1	1
-3020	4211065	Plate 2 x 4	Dark Bluish Gray	1	1	0.82	0.82	https://www.vonado.com/plate-2x4-3020.html
-3023	4211063	Plate 1 x 2	Dark Bluish Gray	1	1	0.36	0.36	https://www.vonado.com/plate-1x2-3023.html
-3030	303026	Plate 4 x 10 	Black	1	1	2.91	2.91	https://www.vonado.com/plate-4x10-3030.html
+ $ cat output.txt
+Part,Color,Quantity,lotCount,unit_price,total_price,link
+87994,0,2
+30374,0,2
+63965,0,4,1,0.27,0.27,https://www.vonado.com/stick-6m-w-flange-63965.html
+11090,0,2,1,0.27,0.27,https://www.vonado.com/bar-holder-with-clip-11090.html
+23443,0,2,1,0.36,0.36,https://www.vonado.com/3-2-shaft-w-3-2-hole-23443.html
+99781,0,7,1,0.55,0.55,https://www.vonado.com/angular-plate-1-5-top-1x2-1-2-99781.html
+99780,0,3,1,0.55,0.55,https://www.vonado.com/angular-plate-1-5-bot-1x2-1-2-99780.html
+10201,0,2
 ```
 
 ## Notes:
@@ -93,7 +84,7 @@ This means that "Part not found" doesn't *necessarily* mean the part isn't on Vo
 
 For example:
 ```
-2444 - 244426 - Plate, Modified 2 x 2 with Pin Hole : Part not found
+2444 : Part not found
 ```
 That part *is* on Vonado:
 https://www.vonado.com/plate-2x2-one-hule-4-8-10247.html
@@ -102,10 +93,10 @@ But the URL doesn't contain the BLID [or really anything one could use to match 
 
 Currently no attention is paid to color.  If you have two colors of the part in your list:
 ```
-4162	5210651	Tile 1 x 8	Dark Bluish Gray	1
-4162	4211481	Tile 1 x 8	Light Bluish Gray	1
+4162	0	1
+4162	1	1
 ```
-You'll get two lines in the output (and two rows in the csv):
+You'll get two lines in the output (and two rows in the output file):
 ```
 ...
 4162 : https://www.vonado.com/flat-tile-1x8-4162.html
@@ -117,8 +108,8 @@ Then the possible pain point is that this list will imply it's available at Vona
 
 ## Roadmap
 
-- ~~Calc how many lots you need to buy (should be trivial if all parts are in lots of ten but I don't know that to be true)~~
-- Make the input file parsing a little more robust.
 - Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS; also problematic since the color numbers at Vonado appear to be LEGO, but the names are Bricklink]
-- ~~Calc ballpark cost~~
 - Add parts to a shopping cart
+- ~~Calc how many lots you need to buy (should be trivial if all parts are in lots of ten but I don't know that to be true)~~
+- ~~Make the input file parsing a little more robust.~~ Now uses Rebrickable CSV as default.
+- ~~Calc ballpark cost~~
