@@ -14,13 +14,22 @@ SKU_Quantity = 10
 firstline = infile.readline()
 
 delim = detect(firstline)
+
+if delim is None:
+    delim = ','
+
 fileWriter = csv.writer(outfile, delimiter=delim, quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
 headers = firstline.split(delim)
 
 columncount = len(headers)
 
+# Get rid of the linefeed at the end
 headers[columncount-1] = headers[columncount-1].rstrip()
+
+if columncount == 1:
+    headers.append("Color")
+    headers.append("Quantity")
 
 headers.append("lotCount")
 headers.append("unit_price")
@@ -34,7 +43,7 @@ for aline in infile:
     try:
 
         blID = values[0].rstrip()
-        partColor = ""
+        partColor = "0"
         partQty = 0
 
         if len(values) > 1:
