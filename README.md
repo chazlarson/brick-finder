@@ -4,11 +4,11 @@ There's a lot of them, so all the clicking is a pain.
 
 This dumb script can help.  It's pretty brittle and works for me.
 
-ATENTION - BREAKING CHANGE: 
-The default input format is now Rebrickable CSV.  My goofy private format is retired for now.
-
 ## Assumptions:
-- You have a list of bricks in Rebrickable CSV format. [It can also be a list of one Bricklink ID per line]
+- You have a list of bricks in one of the following formats:
+  - Rebrickable CSV
+  - Bricklink XML
+  - One Bricklink part ID per line [with a header row]
 - Python 3
 - Running Linux or Mac OS X  [That's only if you're going to copy-paste the commands here; no reason this won't run on Windows]
 
@@ -18,7 +18,7 @@ Clone the repo.
 git clone https://github.com/chazlarson/vonado-bricks.git && cd vonado-bricks
 ```
 
-There's a `quick-test.sh` that will run through the rest of this for both sample input files [it creates and deletes the venv] if you just want to watch it.
+There's a `quick-test.sh` that will run through the rest of this for all three sample input files [it creates and deletes the venv] if you just want to watch it.
 
 Create and activate a virtual environment:
 ```
@@ -31,41 +31,30 @@ install the requirements:
 pip install -r requirements.txt
 ```
 
-Copy the sample input file:
-```
-cp input.txt.sample input.txt
-```
-
 Run the script:
 ```
-python vonado-bricks.py
+python vonado-bricks.py -i input.txt.sample
 ```
 
 The terminal output shows output with Bricklink ID and URL [or "Part Not Found":
 ```
- $ python vonado-bricks.py
-87994 : Part not found
-30374 : Part not found
+ $ python vonado-bricks.py -i input.txt.sample
+3030 : https://www.vonado.com/plate-4x10-3030.html
 63965 : https://www.vonado.com/stick-6m-w-flange-63965.html
-11090 : https://www.vonado.com/bar-holder-with-clip-11090.html
-23443 : https://www.vonado.com/3-2-shaft-w-3-2-hole-23443.html
-99781 : https://www.vonado.com/angular-plate-1-5-top-1x2-1-2-99781.html
-99780 : https://www.vonado.com/angular-plate-1-5-bot-1x2-1-2-99780.html
-10201 : Part not found
+3005 : https://www.vonado.com/brick-1x1-3005.html
+3005 : https://www.vonado.com/brick-1x1-3005.html
+2444 : Part not found
 ```
 
 It also writes an `output.txt` that contains more information:
 ```
  $ cat output.txt
-Part,Color,Quantity,lotCount,unit_price,total_price,link
-87994,0,2
-30374,0,2
-63965,0,4,1,0.27,0.27,https://www.vonado.com/stick-6m-w-flange-63965.html
-11090,0,2,1,0.27,0.27,https://www.vonado.com/bar-holder-with-clip-11090.html
-23443,0,2,1,0.36,0.36,https://www.vonado.com/3-2-shaft-w-3-2-hole-23443.html
-99781,0,7,1,0.55,0.55,https://www.vonado.com/angular-plate-1-5-top-1x2-1-2-99781.html
-99780,0,3,1,0.55,0.55,https://www.vonado.com/angular-plate-1-5-bot-1x2-1-2-99780.html
-10201,0,2
+Part,Color,Quantity,lots,unit,total,link
+3030,0,12,2,2.91,5.82,https://www.vonado.com/plate-4x10-3030.html
+63965,0,40,4,0.27,1.08,https://www.vonado.com/stick-6m-w-flange-63965.html
+3005,0,6,1,0.36,0.36,https://www.vonado.com/brick-1x1-3005.html
+3005,1,8,1,0.36,0.36,https://www.vonado.com/brick-1x1-3005.html
+2444,0,17
 ```
 
 
