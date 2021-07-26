@@ -112,6 +112,10 @@ Source: https://rebrickable.com/colors/
 
 ## Future possibilities
 
+- support for other sites
+  - webrick [looks to be same site backend as Vonado]
+  - AliExpress [extracting results will be fragile]
+- local database to store alternate part numbers
 - support for exported BrickLink wanted list XML
 - Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS; also hampered by remarks above about vagary in color names and numbers]
 - Add parts to a shopping cart
