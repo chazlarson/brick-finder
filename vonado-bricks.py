@@ -46,9 +46,18 @@ def getHeaders(firstline, delim):
 
 def getPartInfo(partID, partColor, partQty):
     partInfo = []
+    partFound = False
     # [partID, partColor, partQty, lotCount, unit_price, total_price, link]
 
     SKU_Quantity = 10
+    rootPartID = partID
+    # Vonado doesn't use the letter at the end on something like 3070b
+    # so we'll pull it off for search purposes.
+    try:
+        a, b = re.split(r"[a-z]", partID, 1, flags=re.I)
+        rootPartID = a
+    except:
+        rootPartID = partID
 
     partInfo.append(partID)
     partInfo.append(partColor)
@@ -56,7 +65,7 @@ def getPartInfo(partID, partColor, partQty):
     
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.3'}
-        reg_url = "https://www.vonado.com/catalogsearch/result/?q=" + partID
+        reg_url = "https://www.vonado.com/catalogsearch/result/?q=" + rootPartID
         req = Request(url=reg_url, headers=headers) 
         html = urlopen(req)
 
@@ -81,7 +90,7 @@ def getPartInfo(partID, partColor, partQty):
 
                 for tag in tags:
                     link = tag['href']
-                    if re.search(f"-{partID}[\.\-]", link, re.IGNORECASE):
+                    if re.search(f"-{rootPartID}[\.\-]", link, re.IGNORECASE):
                         if "moc" not in link:
                             found = True
                             lotCount = partQty//SKU_Quantity
@@ -97,11 +106,18 @@ def getPartInfo(partID, partColor, partQty):
                             unit_price = float(price_tag['data-price-amount'])
                             total_price = lotCount * unit_price
 
+                            # TODO: deal with color
+
+                            partFound = True
                             partInfo.append(lotCount)
                             partInfo.append(unit_price)
                             partInfo.append(total_price)
                             partInfo.append(link)
-
+    
+    # TODO: Perhaps here try searching other sites if partFound is False:
+    # https://www.aliexpress.com/af/6562.html
+    # or search for alternate part numbers retieved from bricklink
+    
     return partInfo
 
 def reportResults(partinfo):
@@ -111,7 +127,14 @@ def reportResults(partinfo):
         print(f"{partinfo[0]} : {partinfo[-1]}")
 
 def processFile(file_name):
-    outfile = open('output.txt', 'w', newline='')
+
+    parts = file_name.split('.')
+    parts.pop()
+    dotstr="."
+    output_name = dotstr.join(parts)
+    output_name=f"{output_name}-output.csv"
+    
+    outfile = open(output_name, 'w', newline='')
 
     firstline = ""
 
@@ -141,7 +164,11 @@ def processFile(file_name):
         # get the information via the children!
         for part in root.findall('ITEM'):
             partID = part.find('ITEMID').text
-            partColor = part.find('COLOR').text
+            try:
+                partColor = part.find('COLOR').text
+            except:
+                partColor = ""
+                # This is probably not going to be found, as it's a sticker sheet or the like
             partQty = int(part.find('MINQTY').text)
             # print(f"Item ID: {itemID} - Color: {itemColor} - Qty: {itemQty}")
 
