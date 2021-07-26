@@ -98,7 +98,7 @@ You'll get two lines in the output (and two rows in the output file):
 
 Then the possible pain point is that this list will imply it's available at Vonado but you'll go there and find out it's not avaiable in Light Bluish Grey or whatever.
 
-Color is tricky.  Vonado *seems* to use LEGO color IDs and Bricklink/Rebrickable color names:
+Color is tricky.  Vonado [and webrick] *seems* to use LEGO color IDs and Bricklink/Rebrickable color names:
 
 For example:
 
