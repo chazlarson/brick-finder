@@ -1,4 +1,4 @@
-So you have a list of bricks from some MOC or something and you want to find out which ones are available from Vonado.
+So you have a list of bricks from some MOC or something and you want to find out which ones are available from Webricks or Vonado.
 
 There's a lot of them, so all the clicking is a pain.
 
@@ -10,7 +10,7 @@ This dumb script can help.  It's pretty brittle and works for me.
   - Bricklink XML
   - One Bricklink part ID per line [with a header row]
 - Python 3
-- Running Linux or Mac OS X  [That's only if you're going to copy-paste the commands here; no reason this won't run on Windows]
+- Running Mac OS X [or probably Linux; I haven't seen the selenium setup work there]
 
 ## Getting started:
 Clone the repo.
@@ -31,36 +31,40 @@ install the requirements:
 pip install -r requirements.txt
 ```
 
+INSTALL SOME SELENIUM STUFF TO BE FILLED IN SOON
+
 Run the script:
 ```
 python vonado-bricks.py -i input.txt.sample
 ```
 
-The terminal output shows output with Bricklink ID and URL [or "Part Not Found":
+The terminal output shows output with Bricklink ID, URL, color status [or "Part Not Found":
 ```
- $ python vonado-bricks.py -i input.txt.sample
-3030 : https://www.vonado.com/plate-4x10-3030.html
-63965 : https://www.vonado.com/stick-6m-w-flange-63965.html
-3005 : https://www.vonado.com/brick-1x1-3005.html
-3005 : https://www.vonado.com/brick-1x1-3005.html
-2444 : Part not found
+ $ python vonado-bricks.py -i input.txt.sample
+1/6 - 3030 : https://www.webrick.com/plate-4x10-3030.html - Color 0 (26) : True
+2/6 - 63965 : https://www.vonado.com/stick-6m-w-flange-63965.html - Color 0 (26) : True
+3/6 - 3005 : https://www.webrick.com/brick-1x1-3005.html - Color 0 (26) : True
+4/6 - 3005 : https://www.webrick.com/brick-1x1-3005.html - Color 1 (23) : True
+5/6 - 2444 : https://www.webrick.com/plate-2x2-one-hule-4-8-10247.html - Color 0 (26) : True
+6/6 - 41769 : https://www.webrick.com/right-plate-2x4-w-angle-41769.html - Color 72 (199) : False
 ```
 
-It also writes an `output.txt` that contains more information:
+It also writes a csv that contains more information:
 ```
- $ cat output.txt
-Part,Color,Quantity,lots,unit,total,link
-3030,0,12,2,2.91,5.82,https://www.vonado.com/plate-4x10-3030.html
-63965,0,40,4,0.27,1.08,https://www.vonado.com/stick-6m-w-flange-63965.html
-3005,0,6,1,0.36,0.36,https://www.vonado.com/brick-1x1-3005.html
-3005,1,8,1,0.36,0.36,https://www.vonado.com/brick-1x1-3005.html
-2444,0,17
+ $ cat input.txt-output.csv
+Part,Color,Quantity,root,LEGOColor,lots,unit,total,link,available,color_available
+3030,0,12,3030,26,12,0.73,8.76,https://www.webrick.com/plate-4x10-3030.html,True,True
+63965,0,40,63965,26,4,0.27,1.08,https://www.vonado.com/stick-6m-w-flange-63965.html,True,True
+3005,0,6,3005,26,6,0.04,0.24,https://www.webrick.com/brick-1x1-3005.html,True,True
+3005,1,8,3005,23,8,0.04,0.32,https://www.webrick.com/brick-1x1-3005.html,True,True
+2444,0,17,2444,26,17,0.07,1.1900000000000002,https://www.webrick.com/plate-2x2-one-hule-4-8-10247.html,True,True
+41769,72,47,41769,199,47,0.08,3.7600000000000002,https://www.webrick.com/right-plate-2x4-w-angle-41769.html,True,False
 ```
 
 
 ## Notes:
 
-This script invokes a search just like the search field on the Vonado website.  If there are results returned, it then looks through them for a result where the part URL contains the Bricklink ID (without additional numbers) and does not contain "moc".  For example, if you're searching for "3004" you'll get these results:
+This script invokes a search just like the search field on the Webricks [and posibly Vonado] website.  If there are results returned, it then looks through them for a result where the part URL contains the Bricklink ID (without additional numbers) and does not contain "moc".  For example, if you're searching for "3004" you'll get these results:
 - https://www.vonado.com/brick-1x2-3004.html
 - https://www.vonado.com/cavity-w-leads-30046.html
 - https://www.vonado.com/window-1x2x2-2-3-with-rounded-top-30044.html
@@ -72,52 +76,23 @@ You only want the first, so a match is considered: "contains the bricklink ID, p
 
 In this specific case, the "moc" filter is redundant, but it could be that some MOC will have the same number as a part, so belt-and-suspenders.
 
-This means that "Part not found" doesn't *necessarily* mean the part isn't on Vonado, but the script will cut down the number of parts you need to search for manually.
+The script grabs the alternate molds from rebrickable for each part and searches for those as well.  This *should* mean that a "Part not found" truly m,eans it is not found on either Webricks or Vonado.
 
-For example:
-```
-2444 : Part not found
-```
-That part *is* on Vonado:
-https://www.vonado.com/plate-2x2-one-hule-4-8-10247.html
+Color is checked by loading the page via selenium and looking for a color swatch that contains the lego color number. I'm assuming that the input file contains rebrickable color numbers.
 
-But the URL doesn't contain the Bricklink ID [or really anything one could use to match them], so it shows up here as "not found"
+If a part is not found on Webricks, then Vonado is searched.
+If a part is found on Webricks, but not in the desired color, then Vonado is searched and the part i is only updated if the color is found on Vonado.
 
-Currently no attention is paid to color.  If you have two colors of the part in your list:
-```
-4162	0	1
-4162	1	1
-```
-You'll get two lines in the output (and two rows in the output file):
-```
-...
-4162 : https://www.vonado.com/flat-tile-1x8-4162.html
-4162 : https://www.vonado.com/flat-tile-1x8-4162.html
-...
-```
-
-Then the possible pain point is that this list will imply it's available at Vonado but you'll go there and find out it's not avaiable in Light Bluish Grey or whatever.
-
-Color is tricky.  Vonado [and webrick] *seems* to use LEGO color IDs and Bricklink/Rebrickable color names:
-
-For example:
-
-![image](https://user-images.githubusercontent.com/3865541/111374320-f4ffeb00-866a-11eb-9e6d-eae511fa42fb.png)
-
-Two names and four numbers for the same color:
-
-![image](https://user-images.githubusercontent.com/3865541/111374636-588a1880-866b-11eb-8151-08167ca001d3.png)
-
-Source: https://rebrickable.com/colors/
+I search Webricks first because parts are sold by the each there.  Vonado is always lots of 10.
 
 ## Future possibilities
 
 - support for other sites
-  - webrick [looks to be same site backend as Vonado]
+  - ~~webrick [looks to be same site backend as Vonado]~~
   - AliExpress [extracting results will be fragile]
-- local database to store alternate part numbers
+- ~~local database to store alternate part numbers~~ [not needed, loaded on the fly]
 - support for exported BrickLink wanted list XML
-- Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS; also hampered by remarks above about vagary in color names and numbers]
+- ~~Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS; also hampered by remarks above about vagary in color names and numbers]~~
 - Add parts to a shopping cart
 - Read and/or produce Excel docs
 - ~~Calc how many lots you need to buy (should be trivial if all parts are in lots of ten but I don't know that to be true)~~
