@@ -98,7 +98,7 @@ You'll get two lines in the output (and two rows in the output file):
 
 Then the possible pain point is that this list will imply it's available at Vonado but you'll go there and find out it's not avaiable in Light Bluish Grey or whatever.
 
-Color is tricky.  Vonado *seems* to use LEGO color IDs and Bricklink/Rebrickable color names:
+Color is tricky.  Vonado [and webrick] *seems* to use LEGO color IDs and Bricklink/Rebrickable color names:
 
 For example:
 
@@ -112,6 +112,10 @@ Source: https://rebrickable.com/colors/
 
 ## Future possibilities
 
+- support for other sites
+  - webrick [looks to be same site backend as Vonado]
+  - AliExpress [extracting results will be fragile]
+- local database to store alternate part numbers
 - support for exported BrickLink wanted list XML
 - Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS; also hampered by remarks above about vagary in color names and numbers]
 - Add parts to a shopping cart
