@@ -2,11 +2,316 @@ from urllib.request import urlopen, Request
 from urllib.error import HTTPError
 from urllib.error import URLError
 import csv
+import json
+import os
 import re
 from bs4 import BeautifulSoup
 from detect_delimiter import detect
 import argparse
 import xml.etree.cElementTree as ET
+from sqlite3 import Error
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
+from dotenv import load_dotenv
+
+load_dotenv()  # take environment variables from .env.
+
+RB_API_KEY = os.getenv('RB_API_KEY')
+
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+web_driver = webdriver.Chrome(options=chrome_options)
+
+def create_outputWriter(file_name, delim):
+    global outputWriter
+    global outfile
+
+    parts = file_name.split('.')
+    parts.pop()
+    dotstr="."
+    output_name = dotstr.join(parts)
+    output_name=f"{output_name}-output.csv"
+    
+    outfile = open(output_name, 'w', newline='')
+
+    outputWriter = csv.writer(outfile, delimiter=delim, quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+outputWriter = None
+outfile = None
+partList = []
+
+def rebrickableToLEGO(colornum):
+    """
+    Get the LEGO equivalent to a rebrickable color number
+    :param colornum:
+    :return:
+    """
+    return color_data[colornum]['Lego']
+
+def isColorAvailable(partURL, colorNum):
+
+    web_driver.get(partURL)
+    delay = 30 # seconds
+    try:
+        myElem = WebDriverWait(web_driver, delay).until(EC.presence_of_element_located((By.CLASS_NAME, 'swatch-attribute')))
+
+        available_colors=web_driver.find_elements_by_class_name("swatch-option")
+    
+        for i in available_colors:
+            title = i.get_attribute('aria-label')
+            if title.startswith(f"{colorNum}-"):
+                return True
+
+    except TimeoutException:
+        print("pageload timeout.")
+    
+    return False 
+
+def countFileLines(file_path):
+    # open file in read mode
+    with open(file_path, 'r') as fp:
+        for count, line in enumerate(fp):
+            pass
+    return count
+
+class Part:
+
+    def __init__(self, partID, partColor, partQty):
+        rb_part = get_rebrickable_details(partID)
+        self._ID = partID
+        self._rootID = getPartRoot(partID)
+        self._altIDs = rb_part['altIDs']
+        self._color = partColor
+        self._LEGOColor = rebrickableToLEGO(partColor)
+        self._qty = partQty
+        self._lotCount = 0
+        self._unit_price = 0
+        self._total_price = 0
+        self._link = ""
+        self._name = rb_part['name']
+        self._available = False
+        self._colorAvailable = False
+
+    def __iter__(self):
+        return iter([self._ID, self._color, self._qty, self._rootID, self._LEGOColor,
+                   self._lotCount, self._unit_price, self._total_price, self._link, self._available,
+                   self._colorAvailable])
+
+    @property
+    def ID(self):
+        return self._ID
+       
+    @ID.setter
+    def ID(self, a):
+        self._ID = a
+
+    @property
+    def rootID(self):
+        return self._rootID
+       
+    @rootID.setter
+    def rootID(self, a):
+        self._rootID = a
+
+    @property
+    def altIDs(self):
+        return self._altIDs
+       
+    @altIDs.setter
+    def altIDs(self, a):
+        self._altIDs = a
+
+    @property
+    def color(self):
+        return self._color
+       
+    @color.setter
+    def color(self, a):
+        self._color = a
+
+    @property
+    def LEGOColor(self):
+        return self._LEGOColor
+       
+    @LEGOColor.setter
+    def LEGOColor(self, a):
+        self._LEGOColor = a
+
+    @property
+    def qty(self):
+        return self._qty
+       
+    @qty.setter
+    def qty(self, a):
+        self._qty = a
+
+    @property
+    def lotCount(self):
+        return self._lotCount
+       
+    @lotCount.setter
+    def lotCount(self, a):
+        self._lotCount = a
+
+    @property
+    def unit_price(self):
+        return self._unit_price
+       
+    @unit_price.setter
+    def unit_price(self, a):
+        self._unit_price = a
+
+    @property
+    def total_price(self):
+        return self._total_price
+       
+    @total_price.setter
+    def total_price(self, a):
+        self._total_price = a
+
+    @property
+    def link(self):
+        return self._link
+       
+    @link.setter
+    def link(self, a):
+        self._link = a
+
+    @property
+    def name(self):
+        return self._name
+       
+    @name.setter
+    def name(self, a):
+        self._name = a
+
+    @property
+    def available(self):
+        return self._available
+       
+    @available.setter
+    def available(self, a):
+        self._available = a
+
+    @property
+    def colorAvailable(self):
+        return self._colorAvailable
+       
+    @colorAvailable.setter
+    def colorAvailable(self, a):
+        self._colorAvailable = a
+
+class Vendor:
+
+    name = ''
+    searchURL = ''
+    skuQty = 1
+
+    def __init__(self, name, searchURL, skuQty):
+        self.name = name
+        self.searchURL = searchURL
+        self.skuQty = skuQty
+
+vendors = []
+vendors.append(Vendor('Webrick', 'https://www.webrick.com/catalogsearch/result/?q=', 1))
+vendors.append(Vendor('Vonado', 'https://www.vonado.com/catalogsearch/result/?q=', 10))
+  
+def getPartRoot(partID):
+    rootPartID = partID
+    # Vonado doesn't use the letter at the end on something like 3070b
+    # so we'll pull it off for search purposes.
+    try:
+        a, b = re.split(r"[a-z]", partID, 1, flags=re.I)
+        rootPartID = a
+    except:
+        rootPartID = partID
+    
+    return rootPartID
+
+def get_rebrickable_details(partNum):
+    rootID = getPartRoot(partNum)
+    details = {}
+    alternates = []
+    alternates.append(rootID)
+    partName = 'Unknown'
+
+    try:
+        headers = {'Accept': 'application/json', 'Authorization': 'key ' + RB_API_KEY}
+        reg_url = f"https://rebrickable.com/api/v3/lego/parts/{partNum}/"
+        req = Request(url=reg_url, headers=headers) 
+        resp = urlopen(req)
+    except HTTPError as e:
+        print(f"{reg_url} : HTTPError")
+        print(e)
+
+    except URLError:
+
+        print(f"{partNum} : Server down or incorrect domain")
+
+    else:
+        partData = json.loads(resp.read())
+        partName = partData['name']
+        # "name": "Plate Special 2 x 2 with 1 Pin Hole [Split Underside Ribs]",
+        alternates = partData['molds']
+        alternates.insert(0, rootID)
+
+    details['name'] = partName
+    details['altIDs'] = alternates
+    return details
+
+def get_rebrickable_colors():
+    # curl -X GET --header 'Accept: application/json' --header 'Authorization: key 8944defc013ca0ee31e05d4972824335' ''
+    colorData = {}
+    
+    try:
+        headers = {'Accept': 'application/json', 'Authorization': 'key ' + RB_API_KEY}
+        reg_url = f"https://rebrickable.com/api/v3/lego/colors/"
+        req = Request(url=reg_url, headers=headers) 
+        resp = urlopen(req)
+    except HTTPError as e:
+        print(f"{reg_url} : HTTPError")
+        print(e)
+
+    except URLError:
+
+        print(f"Colors : Server down or incorrect domain")
+
+    else:
+        colorData = json.loads(resp.read())
+        allColors = colorData["results"]
+        # colorData["results"] is the array of colors
+        # color["id"] is id
+        # color["name"] is name
+        # color["external_ids"]["LEGO"] is lego colorData
+        # color["external_ids"]["LEGO"]["ext_ids"][0] is array we want element 0
+        # want to build 
+        # colorData = {
+        #     0: {
+        #         name: "Black"
+        #         Lego: 26
+        #     }
+        # }
+        for color in allColors:
+            sub = {}
+            if color['id'] > -1:
+                sub['name'] = color["name"]
+                try:
+                    sub["Lego"] = color["external_ids"]["LEGO"]["ext_ids"][0]
+                except KeyError:
+                    sub["Lego"] = -1
+                if sub["Lego"] > -1:
+                    colorData[str(color['id'])] = sub
+
+    return colorData
+        # {0: {'name': 'Black', 'Lego': 26}}
+
+color_data = get_rebrickable_colors()
+
 
 def isXML(file_name):
     try:
@@ -18,13 +323,17 @@ def isXML(file_name):
 
 def getHeaders(firstline, delim):
     if len(firstline) == 0:
-        headers = ["Part"]
-        headers.append("Color")
-        headers.append("Qty")
+        headers = ["part"]
+        headers.append("root")
+        headers.append("color")
+        headers.append("LEGOColor")
+        headers.append("qty")
         headers.append("lots")
         headers.append("unit")
         headers.append("total")
         headers.append("link")
+        headers.append("available")
+        headers.append("color_available")
     else:
         headers = firstline.split(delim)
 
@@ -34,112 +343,126 @@ def getHeaders(firstline, delim):
         headers[columncount-1] = headers[columncount-1].rstrip()
 
         if columncount == 1:
-            headers.append("Color")
-            headers.append("Qty")
+            headers.append("color")
+            headers.append("qty")
 
+        headers.append("root")
+        headers.append("LEGOColor")
         headers.append("lots")
         headers.append("unit")
         headers.append("total")
         headers.append("link")
+        headers.append("available")
+        headers.append("color_available")
 
     return headers
 
+def firstLevelCheck(thePart, doublecheck=False):
+    # pass in partinfo, return partinfo
+    partQty = thePart.qty
+
+    for vnd in vendors:
+        for partNum in thePart.altIDs:
+            if not thePart.available:
+                try:
+                    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.3'}
+                    reg_url = vnd.searchURL + partNum
+                    req = Request(url=reg_url, headers=headers) 
+                    html = urlopen(req)
+
+                except HTTPError as e:
+
+                    print(f"{reg_url} : HTTPError")
+                    print(e)
+
+                except URLError:
+
+                    print(f"{thePart.ID} : Server down or incorrect domain")
+
+                else:
+                    res = BeautifulSoup(html.read(),"html5lib")
+
+                    tags = res.findAll("div", {"class": "message notice"})
+                    
+                    if len(tags) == 0:
+                        tags = res.findAll("a", {"class": ["product photo product-item-photo"]})
+                        if len(tags) > 0:
+                            found = False
+
+                            for tag in tags:
+                                if not thePart.available:
+                                    link = tag['href']
+                                    if re.search(f"-{partNum}[\.\-]", link, re.IGNORECASE):
+                                        if "moc" not in link:
+                                            lotCount = partQty//vnd.skuQty
+
+                                            if partQty%vnd.skuQty > 0:
+                                                lotCount = lotCount + 1
+
+                                            req2 = Request(url=link, headers=headers) 
+                                            html2 = urlopen(req)
+                                            res2 = BeautifulSoup(html2.read(),"html5lib")
+
+                                            price_tag = res2.find("span", {"class": "price-wrapper"})
+                                            unit_price = float(price_tag['data-price-amount'])
+                                            total_price = lotCount * unit_price
+
+                                            hasColor = isColorAvailable(link, thePart.LEGOColor)
+
+                                            if (not doublecheck) or (hasColor and doublecheck):
+                                                thePart.colorAvailable = hasColor
+                                                thePart.available = True
+                                                thePart.lotCount = lotCount
+                                                thePart.unit_price = unit_price
+                                                thePart.total_price = total_price
+                                                thePart.link = link
+                        
+    return thePart
+
 def getPartInfo(partID, partColor, partQty):
-    partInfo = []
-    partFound = False
-    # [partID, partColor, partQty, lotCount, unit_price, total_price, link]
 
-    SKU_Quantity = 10
-    rootPartID = partID
-    # Vonado doesn't use the letter at the end on something like 3070b
-    # so we'll pull it off for search purposes.
-    try:
-        a, b = re.split(r"[a-z]", partID, 1, flags=re.I)
-        rootPartID = a
-    except:
-        rootPartID = partID
+    thePart = Part(partID, partColor, partQty)
 
-    partInfo.append(partID)
-    partInfo.append(partColor)
-    partInfo.append(partQty)
-    
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.3'}
-        reg_url = "https://www.vonado.com/catalogsearch/result/?q=" + rootPartID
-        req = Request(url=reg_url, headers=headers) 
-        html = urlopen(req)
+    thePart = firstLevelCheck(thePart)
 
-    except HTTPError as e:
-
-        print(f"{reg_url} : HTTPError")
-        print(e)
-
-    except URLError:
-
-        print(f"{partID} : Server down or incorrect domain")
-
-    else:
-        res = BeautifulSoup(html.read(),"html5lib")
-
-        tags = res.findAll("div", {"class": "message notice"})
-        
-        if len(tags) == 0:
-            tags = res.findAll("a", {"class": ["product photo product-item-photo"]})
-            if len(tags) > 0:
-                found = False
-
-                for tag in tags:
-                    link = tag['href']
-                    if re.search(f"-{rootPartID}[\.\-]", link, re.IGNORECASE):
-                        if "moc" not in link:
-                            found = True
-                            lotCount = partQty//SKU_Quantity
-
-                            if partQty%SKU_Quantity > 0:
-                                lotCount = lotCount + 1
-
-                            req2 = Request(url=link, headers=headers) 
-                            html2 = urlopen(req)
-                            res2 = BeautifulSoup(html2.read(),"html5lib")
-
-                            price_tag = res2.find("span", {"class": "price-wrapper"})
-                            unit_price = float(price_tag['data-price-amount'])
-                            total_price = lotCount * unit_price
-
-                            # TODO: deal with color
-
-                            partFound = True
-                            partInfo.append(lotCount)
-                            partInfo.append(unit_price)
-                            partInfo.append(total_price)
-                            partInfo.append(link)
-    
-    # TODO: Perhaps here try searching other sites if partFound is False:
+    # TODO: Perhaps try searching Aliexpress:
     # https://www.aliexpress.com/af/6562.html
-    # or search for alternate part numbers retieved from bricklink
     
-    return partInfo
+    return thePart
 
-def reportResults(partinfo):
-    if len(partinfo) == 3:
-        print(f"{partinfo[0]} : Part not found")
-    else:
-        print(f"{partinfo[0]} : {partinfo[-1]}")
+def reportResults(thePart, idx, ct):
+    outputString = f"{idx}/{ct} - {thePart.ID} : Part not found: {thePart.name}"
+    if thePart.available:
+        outputString = f"{idx}/{ct} - {thePart.ID} : {thePart.link} - Color {thePart.color} ({thePart.LEGOColor}) : {thePart.colorAvailable}"
 
-def processFile(file_name):
+    print(outputString)
 
+def writeResults(thePartList, file_name, headers, delim):
     parts = file_name.split('.')
     parts.pop()
     dotstr="."
     output_name = dotstr.join(parts)
     output_name=f"{output_name}-output.csv"
-    
-    outfile = open(output_name, 'w', newline='')
+
+    with open(output_name, 'wt') as csv_file:
+        wr = csv.writer(csv_file, delimiter=delim)
+        wr.writerow(list(headers))
+        for part in thePartList:
+            wr.writerow(list(part))
+ 
+def handleResults(thePart, idx, ct):
+    global partList
+    reportResults(thePart, idx, ct)
+    partList.append(thePart)
+
+def processFile(file_name):
 
     firstline = ""
 
     delim = '\t'
     
+    numLines = countFileLines(file_name)
+
     if isXML(file_name):
         firstline = ""
     else:
@@ -150,11 +473,6 @@ def processFile(file_name):
 
         if delim is None:
             delim = ','
-
-    headers = getHeaders(firstline, delim)
-
-    fileWriter = csv.writer(outfile, delimiter=delim, quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    fileWriter.writerow(headers)
 
     
     if isXML(file_name):
@@ -174,14 +492,13 @@ def processFile(file_name):
 
             partinfo = getPartInfo(partID, partColor, partQty)
 
-            if len(partinfo) == 3:
-                print(f"{partID} : Part not found")
-            else:
-                print(f"{partID} : {partinfo[-1]}")
+            handleResults(partinfo)
 
-            fileWriter.writerow(partinfo)
     else:
+        lineIdx = 0
+
         for aline in infile:
+            lineIdx = lineIdx + 1
             values = aline.split(delim)
 
             partID = values[0].rstrip()
@@ -192,18 +509,19 @@ def processFile(file_name):
                 partColor = values[1]
                 partQty = int(values[2].rstrip())
 
-            partinfo = getPartInfo(partID, partColor, partQty)
+            thePart = getPartInfo(partID, partColor, partQty)
 
-            reportResults(partinfo)
-
-            fileWriter.writerow(partinfo)
+            handleResults(thePart, lineIdx, numLines)
 
         infile.close()
 
-    outfile.close()
+    headers = getHeaders(firstline, delim)
+    
+    writeResults(partList, file_name, headers, delim)
 
 if __name__ == "__main__":
    parser = argparse.ArgumentParser(description='program1 ')
    parser.add_argument('-i','--input', help='Input file name',required=True)
    args = parser.parse_args()
    processFile(args.input)
+   web_driver.close()
