@@ -18,6 +18,10 @@ Clone the repo.
 git clone https://github.com/chazlarson/vonado-bricks.git && cd vonado-bricks
 ```
 
+Add your rebrickable API key to the environment as `RB_API_KEY`
+
+INSTALL SOME SELENIUM STUFF TO BE FILLED IN SOON.  The `quick-test.sh` script won't work until this is sorted.
+
 There's a `quick-test.sh` that will run through the rest of this for all three sample input files [it creates and deletes the venv] if you just want to watch it.
 
 Create and activate a virtual environment:
@@ -30,8 +34,6 @@ install the requirements:
 ```
 pip install -r requirements.txt
 ```
-
-INSTALL SOME SELENIUM STUFF TO BE FILLED IN SOON
 
 Run the script:
 ```
