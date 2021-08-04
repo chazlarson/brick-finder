@@ -9,23 +9,53 @@ from bs4 import BeautifulSoup
 from detect_delimiter import detect
 import argparse
 import xml.etree.cElementTree as ET
+from xml.dom.minidom import parseString
 from sqlite3 import Error
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium import webdriver
+from selenium.webdriver.chrome.options import Options as ChromeOpts
+from selenium.webdriver.firefox.options import Options as FirefoxOpts
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from webdriver_manager.microsoft import IEDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
+from webdriver_manager.utils import ChromeType
 from dotenv import load_dotenv
 
 load_dotenv()  # take environment variables from .env.
 
 RB_API_KEY = os.getenv('RB_API_KEY')
 
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-web_driver = webdriver.Chrome(options=chrome_options)
+web_driver = None
+
+try:
+    if os.getenv('BROWSER') == 'chromium':
+        chrome_options = ChromeOpts()
+        chrome_options.add_argument("--headless")
+        web_driver = webdriver.Chrome(ChromeDriverManager(chrome_type = ChromeType.CHROMIUM).install())
+
+    if os.getenv('BROWSER') == 'firefox':
+        firefox_options = FirefoxOpts()
+        firefox_options.add_argument("--headless")
+        web_driver = webdriver.Firefox(executable_path = GeckoDriverManager().install(), options=firefox_options)
+
+    if os.getenv('BROWSER') == 'msie':
+        web_driver = webdriver.Ie(IEDriverManager().install())
+
+    if os.getenv('BROWSER') == 'edge':
+        web_driver = webdriver.Edge(EdgeChromiumDriverManager().install())
+
+    if web_driver == None:
+        chrome_options = ChromeOpts()
+        chrome_options.add_argument("--headless")
+        web_driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+except Exception as ex:
+    print(f"cannot initialize {os.getenv('BROWSER')} browser option:")
+    print(f"{ex}")
+    exit()
 
 def create_outputWriter(file_name, delim):
     global outputWriter
@@ -51,24 +81,28 @@ def rebrickableToLEGO(colornum):
     :param colornum:
     :return:
     """
+    if colornum < 0:
+        return colornum
+    
     return color_data[colornum]['Lego']
 
-def isColorAvailable(partURL, colorNum):
+def isColorAvailable(partURL, colornum):
 
-    web_driver.get(partURL)
-    delay = 30 # seconds
-    try:
-        myElem = WebDriverWait(web_driver, delay).until(EC.presence_of_element_located((By.CLASS_NAME, 'swatch-attribute')))
+    if colornum > -1:
+        web_driver.get(partURL)
+        delay = 30 # seconds
+        try:
+            myElem = WebDriverWait(web_driver, delay).until(EC.presence_of_element_located((By.CLASS_NAME, 'swatch-attribute')))
 
-        available_colors=web_driver.find_elements_by_class_name("swatch-option")
+            available_colors=web_driver.find_elements_by_class_name("swatch-option")
     
-        for i in available_colors:
-            title = i.get_attribute('aria-label')
-            if title.startswith(f"{colorNum}-"):
-                return True
+            for i in available_colors:
+                title = i.get_attribute('aria-label')
+                if title.startswith(f"{colornum}-"):
+                    return True
 
-    except TimeoutException:
-        print("pageload timeout.")
+        except TimeoutException:
+            print("Could not get color information.  This may be because the page load timed out or because the page is for a single color.")
     
     return False 
 
@@ -78,6 +112,13 @@ def countFileLines(file_path):
         for count, line in enumerate(fp):
             pass
     return count
+
+def countXMLTags(file_path):
+    file = open(file_path,'r')
+    data = file.read()
+    file.close()
+    dom = parseString(data)
+    return len(dom.getElementsByTagName('ITEM'))
 
 class Part:
 
@@ -305,13 +346,12 @@ def get_rebrickable_colors():
                 except KeyError:
                     sub["Lego"] = -1
                 if sub["Lego"] > -1:
-                    colorData[str(color['id'])] = sub
+                    colorData[color['id']] = sub
 
     return colorData
         # {0: {'name': 'Black', 'Lego': 26}}
 
 color_data = get_rebrickable_colors()
-
 
 def isXML(file_name):
     try:
@@ -433,7 +473,10 @@ def getPartInfo(partID, partColor, partQty):
 def reportResults(thePart, idx, ct):
     outputString = f"{idx}/{ct} - {thePart.ID} : Part not found: {thePart.name}"
     if thePart.available:
-        outputString = f"{idx}/{ct} - {thePart.ID} : {thePart.link} - Color {thePart.color} ({thePart.LEGOColor}) : {thePart.colorAvailable}"
+        if thePart.color < 0:
+            outputString = f"{idx}/{ct} - {thePart.ID} : {thePart.link} - Color not specified"
+        else:
+            outputString = f"{idx}/{ct} - {thePart.ID} : {thePart.link} - Color {thePart.color} ({thePart.LEGOColor}) : {thePart.colorAvailable}"
 
     print(outputString)
 
@@ -457,15 +500,19 @@ def handleResults(thePart, idx, ct):
 
 def processFile(file_name):
 
+    print(f"\n\n================\nProcessing {file_name}\n================")
+
     firstline = ""
 
     delim = '\t'
     
-    numLines = countFileLines(file_name)
+    numLines = 0
 
     if isXML(file_name):
         firstline = ""
+        numLines = countXMLTags(file_name)
     else:
+        numLines = countFileLines(file_name)
         infile = open(file_name, "r")
         firstline = infile.readline()
 
@@ -476,23 +523,25 @@ def processFile(file_name):
 
     
     if isXML(file_name):
+        lineIdx = 0
         tree = ET.ElementTree(file=file_name)
         root = tree.getroot()
 
         # get the information via the children!
         for part in root.findall('ITEM'):
+            lineIdx = lineIdx + 1
             partID = part.find('ITEMID').text
             try:
-                partColor = part.find('COLOR').text
+                partColor = int(part.find('COLOR').text)
             except:
-                partColor = ""
+                partColor = -1
                 # This is probably not going to be found, as it's a sticker sheet or the like
             partQty = int(part.find('MINQTY').text)
             # print(f"Item ID: {itemID} - Color: {itemColor} - Qty: {itemQty}")
 
-            partinfo = getPartInfo(partID, partColor, partQty)
+            thePart = getPartInfo(partID, partColor, partQty)
 
-            handleResults(partinfo)
+            handleResults(thePart, lineIdx, numLines)
 
     else:
         lineIdx = 0
@@ -502,11 +551,11 @@ def processFile(file_name):
             values = aline.split(delim)
 
             partID = values[0].rstrip()
-            partColor = "0"
+            partColor = -1
             partQty = 0
 
             if len(values) > 1:
-                partColor = values[1]
+                partColor = int(values[1])
                 partQty = int(values[2].rstrip())
 
             thePart = getPartInfo(partID, partColor, partQty)

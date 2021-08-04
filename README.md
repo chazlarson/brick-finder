@@ -11,6 +11,7 @@ This dumb script can help.  It's pretty brittle and works for me.
   - One Bricklink part ID per line [with a header row]
 - Python 3
 - Running Mac OS X [or probably Linux; I haven't seen the selenium setup work there]
+- Rebrickable API Key
 
 ## Getting started:
 Clone the repo.
@@ -18,11 +19,44 @@ Clone the repo.
 git clone https://github.com/chazlarson/vonado-bricks.git && cd vonado-bricks
 ```
 
-Add your rebrickable API key to the environment as `RB_API_KEY`
+Create an environment file at `.env`:
+```
+RB_API_KEY=BINGBANGBOING
+BROWSER=firefox
+```
 
-INSTALL SOME SELENIUM STUFF TO BE FILLED IN SOON.  The `quick-test.sh` script won't work until this is sorted.
+Available [not necessarily working] settings for `BROWSER` are:
+```
+  chrome
+  chromium
+  firefox
+  msie
+  edge
+```
 
-There's a `quick-test.sh` that will run through the rest of this for all three sample input files [it creates and deletes the venv] if you just want to watch it.
+Selenium setup:
+
+Mac OS X: 
+- Install the browser matching the setting in `.env`
+  - only `chrome` and `firefox` working presently
+
+Linux: 
+- TBD
+
+Windows: 
+- TBD
+
+There's a `quick-test.sh` that will run through the rest of this for all three sample input files [it creates and deletes the venv] if you just want to watch it.  
+
+The sample input file contains a few different cases:
+```
+Part,Color,Quantity
+32064a,4,81 # part not available on webrick, available on vonado with correct color
+32064a,5,9  # part not available on webrick, available on vonado but not in the requested color
+63965,0,40  # part available on webrick in the wrong color; not available from vonado in correct color, either
+2444,0,17   # part available on webrick under alternate mold
+4732,72,2   # part not available on either
+```
 
 Create and activate a virtual environment:
 ```
@@ -42,27 +76,35 @@ python vonado-bricks.py -i input.txt.sample
 
 The terminal output shows output with Bricklink ID, URL, color status [or "Part Not Found":
 ```
- $ python vonado-bricks.py -i input.txt.sample
-1/6 - 3030 : https://www.webrick.com/plate-4x10-3030.html - Color 0 (26) : True
-2/6 - 63965 : https://www.vonado.com/stick-6m-w-flange-63965.html - Color 0 (26) : True
-3/6 - 3005 : https://www.webrick.com/brick-1x1-3005.html - Color 0 (26) : True
-4/6 - 3005 : https://www.webrick.com/brick-1x1-3005.html - Color 1 (23) : True
-5/6 - 2444 : https://www.webrick.com/plate-2x2-one-hule-4-8-10247.html - Color 0 (26) : True
-6/6 - 41769 : https://www.webrick.com/right-plate-2x4-w-angle-41769.html - Color 72 (199) : False
+$ python vonado-bricks.py -i input.txt.sample
+
+
+====== WebDriver manager ======
+Current firefox version is 89.0.2
+Get LATEST driver version for 89.0.2
+Driver [/Users/chazlarson/.wdm/drivers/geckodriver/macos/v0.29.1/geckodriver] found in cache
+
+
+================
+Processing input.txt.sample
+================
+1/5 - 32064a : https://www.vonado.com/brick-1x2-with-cross-hole-32064.html - Color 4 (21) : True
+2/5 - 32064a : https://www.vonado.com/brick-1x2-with-cross-hole-32064.html - Color 5 (221) : False
+3/5 - 63965 : https://www.webrick.com/stick-6m-w-flange-63965.html - Color 0 (26) : False
+4/5 - 2444 : https://www.webrick.com/plate-2x2-one-hule-4-8-10247.html - Color 0 (26) : True
+5/5 - 4732 : Part not found: Bracket 8 x 2 x 1 1/3
 ```
 
 It also writes a csv that contains more information:
 ```
- $ cat input.txt-output.csv
+$ cat input.txt-output.csv
 Part,Color,Quantity,root,LEGOColor,lots,unit,total,link,available,color_available
-3030,0,12,3030,26,12,0.73,8.76,https://www.webrick.com/plate-4x10-3030.html,True,True
-63965,0,40,63965,26,4,0.27,1.08,https://www.vonado.com/stick-6m-w-flange-63965.html,True,True
-3005,0,6,3005,26,6,0.04,0.24,https://www.webrick.com/brick-1x1-3005.html,True,True
-3005,1,8,3005,23,8,0.04,0.32,https://www.webrick.com/brick-1x1-3005.html,True,True
+32064a,4,81,32064,21,9,0.8,7.2,https://www.vonado.com/brick-1x2-with-cross-hole-32064.html,True,True
+32064a,5,9,32064,221,1,0.8,0.8,https://www.vonado.com/brick-1x2-with-cross-hole-32064.html,True,False
+63965,0,40,63965,26,40,0.03,1.2,https://www.webrick.com/stick-6m-w-flange-63965.html,True,False
 2444,0,17,2444,26,17,0.07,1.1900000000000002,https://www.webrick.com/plate-2x2-one-hule-4-8-10247.html,True,True
-41769,72,47,41769,199,47,0.08,3.7600000000000002,https://www.webrick.com/right-plate-2x4-w-angle-41769.html,True,False
+4732,72,2,4732,199,0,0,0,,False,False
 ```
-
 
 ## Notes:
 
@@ -78,14 +120,14 @@ You only want the first, so a match is considered: "contains the bricklink ID, p
 
 In this specific case, the "moc" filter is redundant, but it could be that some MOC will have the same number as a part, so belt-and-suspenders.
 
-The script grabs the alternate molds from rebrickable for each part and searches for those as well.  This *should* mean that a "Part not found" truly m,eans it is not found on either Webricks or Vonado.
-
-Color is checked by loading the page via selenium and looking for a color swatch that contains the lego color number. I'm assuming that the input file contains rebrickable color numbers.
-
 If a part is not found on Webricks, then Vonado is searched.
-If a part is found on Webricks, but not in the desired color, then Vonado is searched and the part i is only updated if the color is found on Vonado.
+If a part is found on Webricks, but not in the desired color, then Vonado is searched and the part info is only updated if the color is found on Vonado.
 
-I search Webricks first because parts are sold by the each there.  Vonado is always lots of 10.
+Webricks is searched first because parts are sold by the each there.  Vonado is always lots of 10.
+
+The script grabs the alternate molds from rebrickable for each part and searches for those as well.  This *should* mean that a "Part not found" truly means it is not found on either Webricks or Vonado.
+
+Color is checked by loading the page via selenium and looking for a color swatch that contains the Lego color number. I'm assuming that the input file contains rebrickable color numbers.
 
 ## Future possibilities
 

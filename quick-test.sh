@@ -16,7 +16,7 @@ cat input-minimal.txt.sample
 echo "Running script:"
 python vonado-bricks.py -i input-minimal.txt.sample
 echo "output file:"
-cat output.txt
+cat input-minimal.txt-output.csv
 
 echo "running Rebrickable csv"
 echo "input file:"
@@ -24,7 +24,7 @@ cat input.txt.sample
 echo "Running script:"
 python vonado-bricks.py -i input.txt.sample
 echo "output file:"
-cat output.txt
+cat input.txt-output.csv
 
 echo "running Bricklink XML"
 echo "input file:"
@@ -32,8 +32,8 @@ cat input.xml.sample
 echo "Running script:"
 python vonado-bricks.py -i input.xml.sample
 echo "output file:"
-cat output.txt
+cat input.xml-output.csv
 
 echo "cleaning up"
 rm -fr vonado-brick-test-env
-rm -f output.txt
+rm -f input.*-output.csv
