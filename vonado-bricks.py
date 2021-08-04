@@ -450,7 +450,7 @@ def reportResults(thePart, idx, ct):
 def writeResults(thePartList, file_name, headers, delim):
 
     p = PurePath(file_name)
-    output_name=f"{p.root}{p.stem}-output{p.suffix}"
+    output_name=f"{p.root}{p.stem}-output.txt"
 
     with open(output_name, 'wt') as csv_file:
         wr = csv.writer(csv_file, delimiter=delim)
