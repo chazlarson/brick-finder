@@ -10,7 +10,10 @@ This dumb script can help.  It's pretty brittle and works for me.
   - Bricklink XML
   - One Bricklink part ID per line [with a header row]
 - Python 3
-- Running Mac OS X [or probably Linux; I haven't seen the selenium setup work there]
+  - https://www.python.org/
+- git
+  - https://git-scm.com/download
+- Running Mac OS X or Ubuntu Linux
 - Rebrickable API Key
 
 ## Getting started:
@@ -28,6 +31,7 @@ BROWSER=firefox
 Available settings for `BROWSER` are:
 ```
   chrome
+  edge
   firefox
 ```
 
@@ -35,13 +39,16 @@ Selenium setup:
 
 Mac OS X: 
 - Install the browser matching the setting in `.env`
+  - `edge` not working
 
 Linux: 
 - Install the browser matching the setting in `.env`
-  - only `chrome` and `firefox` working presently
+  - `edge` not working
   
 Windows: 
-- TBD
+- Install the browser matching the setting in `.env`
+  - `firefox` and `edge` working fine
+  - `chrome` works but throws a lot of warnings in the output.
 
 There's a `quick-test.sh` that will run through the rest of this for all three sample input files [it creates and deletes the venv] if you just want to watch it.  
 
@@ -59,6 +66,11 @@ Create and activate a virtual environment:
 ```
 python3 -m venv vonado-bricks
 source vonado-bricks/bin/activate
+```
+Windows?
+```
+python -m venv vonado-bricks
+vonado-bricks\Scripts\activate
 ```
 
 install the requirements:
