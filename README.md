@@ -25,24 +25,21 @@ RB_API_KEY=BINGBANGBOING
 BROWSER=firefox
 ```
 
-Available [not necessarily working] settings for `BROWSER` are:
+Available settings for `BROWSER` are:
 ```
   chrome
-  chromium
   firefox
-  msie
-  edge
 ```
 
 Selenium setup:
 
 Mac OS X: 
 - Install the browser matching the setting in `.env`
-  - only `chrome` and `firefox` working presently
 
 Linux: 
-- TBD
-
+- Install the browser matching the setting in `.env`
+  - only `chrome` and `firefox` working presently
+  
 Windows: 
 - TBD
 
