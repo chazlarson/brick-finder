@@ -5,12 +5,12 @@ import csv
 import json
 import os
 import re
+from pathlib import PurePath
 from bs4 import BeautifulSoup
 from detect_delimiter import detect
 import argparse
 import xml.etree.cElementTree as ET
 from xml.dom.minidom import parseString
-from sqlite3 import Error
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOpts
 from selenium.webdriver.firefox.options import Options as FirefoxOpts
@@ -29,6 +29,7 @@ load_dotenv()  # take environment variables from .env.
 
 RB_API_KEY = os.getenv('RB_API_KEY')
 
+partList = []
 web_driver = None
 
 try:
@@ -57,34 +58,19 @@ except Exception as ex:
     print(f"{ex}")
     exit()
 
-def create_outputWriter(file_name, delim):
-    global outputWriter
-    global outfile
-
-    parts = file_name.split('.')
-    parts.pop()
-    dotstr="."
-    output_name = dotstr.join(parts)
-    output_name=f"{output_name}-output.csv"
-    
-    outfile = open(output_name, 'w', newline='')
-
-    outputWriter = csv.writer(outfile, delimiter=delim, quotechar='"', quoting=csv.QUOTE_MINIMAL)
-
-outputWriter = None
-outfile = None
-partList = []
-
-def rebrickableToLEGO(colornum):
+def rebrickableColorToLEGO(colornum):
     """
-    Get the LEGO equivalent to a rebrickable color number
+    Get the LEGO equivalent to a rebrickable color number if it exists
     :param colornum:
     :return:
     """
     if colornum < 0:
         return colornum
     
-    return color_data[colornum]['Lego']
+    try:
+        return color_data[colornum]['Lego']
+    except:
+        return colornum
 
 def isColorAvailable(partURL, colornum):
 
@@ -114,11 +100,10 @@ def countFileLines(file_path):
     return count
 
 def countXMLTags(file_path):
-    file = open(file_path,'r')
-    data = file.read()
-    file.close()
-    dom = parseString(data)
-    return len(dom.getElementsByTagName('ITEM'))
+    with open(file_path, 'r') as xml_file:
+        data = xml_file.read()
+        dom = parseString(data)
+        return len(dom.getElementsByTagName('ITEM'))
 
 class Part:
 
@@ -128,7 +113,7 @@ class Part:
         self._rootID = getPartRoot(partID)
         self._altIDs = rb_part['altIDs']
         self._color = partColor
-        self._LEGOColor = rebrickableToLEGO(partColor)
+        self._LEGOColor = rebrickableColorToLEGO(partColor)
         self._qty = partQty
         self._lotCount = 0
         self._unit_price = 0
@@ -279,6 +264,7 @@ def get_rebrickable_details(partNum):
     details = {}
     alternates = []
     alternates.append(rootID)
+    alternates.append(partNum)
     partName = 'Unknown'
 
     try:
@@ -286,27 +272,22 @@ def get_rebrickable_details(partNum):
         reg_url = f"https://rebrickable.com/api/v3/lego/parts/{partNum}/"
         req = Request(url=reg_url, headers=headers) 
         resp = urlopen(req)
-    except HTTPError as e:
-        print(f"{reg_url} : HTTPError")
-        print(e)
-
-    except URLError:
-
-        print(f"{partNum} : Server down or incorrect domain")
-
-    else:
         partData = json.loads(resp.read())
         partName = partData['name']
-        # "name": "Plate Special 2 x 2 with 1 Pin Hole [Split Underside Ribs]",
         alternates = partData['molds']
         alternates.insert(0, rootID)
+    except HTTPError as e:
+        print(f"Rebrickable doesn't recognize part {partNum}")
+
+    except URLError:
+        print(f"{partNum} : Server down or incorrect domain")
 
     details['name'] = partName
+    alternates = list(dict.fromkeys(alternates))
     details['altIDs'] = alternates
     return details
 
 def get_rebrickable_colors():
-    # curl -X GET --header 'Accept: application/json' --header 'Authorization: key 8944defc013ca0ee31e05d4972824335' ''
     colorData = {}
     
     try:
@@ -314,29 +295,8 @@ def get_rebrickable_colors():
         reg_url = f"https://rebrickable.com/api/v3/lego/colors/"
         req = Request(url=reg_url, headers=headers) 
         resp = urlopen(req)
-    except HTTPError as e:
-        print(f"{reg_url} : HTTPError")
-        print(e)
-
-    except URLError:
-
-        print(f"Colors : Server down or incorrect domain")
-
-    else:
         colorData = json.loads(resp.read())
         allColors = colorData["results"]
-        # colorData["results"] is the array of colors
-        # color["id"] is id
-        # color["name"] is name
-        # color["external_ids"]["LEGO"] is lego colorData
-        # color["external_ids"]["LEGO"]["ext_ids"][0] is array we want element 0
-        # want to build 
-        # colorData = {
-        #     0: {
-        #         name: "Black"
-        #         Lego: 26
-        #     }
-        # }
         for color in allColors:
             sub = {}
             if color['id'] > -1:
@@ -347,9 +307,15 @@ def get_rebrickable_colors():
                     sub["Lego"] = -1
                 if sub["Lego"] > -1:
                     colorData[color['id']] = sub
+    except HTTPError as e:
+        print(f"{reg_url} : HTTPError")
+        print(e)
+
+    except URLError:
+
+        print(f"Colors : Server down or incorrect domain")
 
     return colorData
-        # {0: {'name': 'Black', 'Lego': 26}}
 
 color_data = get_rebrickable_colors()
 
@@ -398,7 +364,6 @@ def getHeaders(firstline, delim):
     return headers
 
 def firstLevelCheck(thePart, doublecheck=False):
-    # pass in partinfo, return partinfo
     partQty = thePart.qty
 
     for vnd in vendors:
@@ -423,40 +388,42 @@ def firstLevelCheck(thePart, doublecheck=False):
                     res = BeautifulSoup(html.read(),"html5lib")
 
                     tags = res.findAll("div", {"class": "message notice"})
+                    # the appearance of this means no results.
                     
                     if len(tags) == 0:
                         tags = res.findAll("a", {"class": ["product photo product-item-photo"]})
-                        if len(tags) > 0:
-                            found = False
+                        for tag in tags:
+                            if not thePart.available:
+                                link = tag['href']
+                                if re.search(f"-{partNum}[\.\-]", link, re.IGNORECASE):
+                                    if "moc" not in link:
+                                        # we've found the right search result; get the part page
+                                        # this could of course be combined with the selenium pull of the page below
+                                        req2 = Request(url=link, headers=headers) 
+                                        html2 = urlopen(req)
+                                        res2 = BeautifulSoup(html2.read(),"html5lib")
 
-                            for tag in tags:
-                                if not thePart.available:
-                                    link = tag['href']
-                                    if re.search(f"-{partNum}[\.\-]", link, re.IGNORECASE):
-                                        if "moc" not in link:
-                                            lotCount = partQty//vnd.skuQty
+                                        price_tag = res2.find("span", {"class": "price-wrapper"})
+                                        unit_price = float(price_tag['data-price-amount'])
 
-                                            if partQty%vnd.skuQty > 0:
-                                                lotCount = lotCount + 1
+                                        lotCount = partQty//vnd.skuQty
 
-                                            req2 = Request(url=link, headers=headers) 
-                                            html2 = urlopen(req)
-                                            res2 = BeautifulSoup(html2.read(),"html5lib")
+                                        if partQty%vnd.skuQty > 0:
+                                            lotCount = lotCount + 1
 
-                                            price_tag = res2.find("span", {"class": "price-wrapper"})
-                                            unit_price = float(price_tag['data-price-amount'])
-                                            total_price = lotCount * unit_price
+                                        total_price = lotCount * unit_price
 
-                                            hasColor = isColorAvailable(link, thePart.LEGOColor)
+                                        hasColor = isColorAvailable(link, thePart.LEGOColor)
 
-                                            if (not doublecheck) or (hasColor and doublecheck):
-                                                thePart.colorAvailable = hasColor
-                                                thePart.available = True
-                                                thePart.lotCount = lotCount
-                                                thePart.unit_price = unit_price
-                                                thePart.total_price = total_price
-                                                thePart.link = link
-                        
+                                        if (not doublecheck) or (hasColor and doublecheck):
+                                            thePart.colorAvailable = hasColor
+                                            thePart.available = True
+                                            thePart.lotCount = lotCount
+                                            thePart.unit_price = unit_price
+                                            thePart.total_price = total_price
+                                            thePart.link = link
+
+                    
     return thePart
 
 def getPartInfo(partID, partColor, partQty):
@@ -481,11 +448,9 @@ def reportResults(thePart, idx, ct):
     print(outputString)
 
 def writeResults(thePartList, file_name, headers, delim):
-    parts = file_name.split('.')
-    parts.pop()
-    dotstr="."
-    output_name = dotstr.join(parts)
-    output_name=f"{output_name}-output.csv"
+
+    p = PurePath(file_name)
+    output_name=f"{p.root}{p.stem}-output{p.suffix}"
 
     with open(output_name, 'wt') as csv_file:
         wr = csv.writer(csv_file, delimiter=delim)
@@ -494,7 +459,6 @@ def writeResults(thePartList, file_name, headers, delim):
             wr.writerow(list(part))
  
 def handleResults(thePart, idx, ct):
-    global partList
     reportResults(thePart, idx, ct)
     partList.append(thePart)
 
@@ -537,7 +501,6 @@ def processFile(file_name):
                 partColor = -1
                 # This is probably not going to be found, as it's a sticker sheet or the like
             partQty = int(part.find('MINQTY').text)
-            # print(f"Item ID: {itemID} - Color: {itemColor} - Qty: {itemQty}")
 
             thePart = getPartInfo(partID, partColor, partQty)
 
@@ -569,8 +532,9 @@ def processFile(file_name):
     writeResults(partList, file_name, headers, delim)
 
 if __name__ == "__main__":
-   parser = argparse.ArgumentParser(description='program1 ')
-   parser.add_argument('-i','--input', help='Input file name',required=True)
-   args = parser.parse_args()
-   processFile(args.input)
-   web_driver.close()
+    parser = argparse.ArgumentParser(description='program1 ')
+    parser.add_argument('-i','--input', help='Input file name',required=True)
+    args = parser.parse_args()
+    processFile(args.input)
+    if web_driver is not None:
+       web_driver.close()
