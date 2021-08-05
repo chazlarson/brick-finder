@@ -369,7 +369,6 @@ def firstLevelCheck(thePart, doublecheck=False):
     partQty = thePart.qty
 
     for vnd in vendors:
-        print(f"Checking {vnd.name}")
         for partNum in thePart.altIDs:
             if not thePart.available:
                 try:
