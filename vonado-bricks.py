@@ -244,8 +244,10 @@ class Vendor:
         self.skuQty = skuQty
 
 vendors = []
-vendors.append(Vendor('Webrick', 'https://www.webrick.com/catalogsearch/result/?q=', 1))
+wbPos = 0 if os.getenv('PRIMARY') == 'webrick' else 99 
+
 vendors.append(Vendor('Vonado', 'https://www.vonado.com/catalogsearch/result/?q=', 10))
+vendors.insert(wbPos, Vendor('Webrick', 'https://www.webrick.com/catalogsearch/result/?q=', 1))
   
 def getPartRoot(partID):
     rootPartID = partID
@@ -367,6 +369,7 @@ def firstLevelCheck(thePart, doublecheck=False):
     partQty = thePart.qty
 
     for vnd in vendors:
+        print(f"Checking {vnd.name}")
         for partNum in thePart.altIDs:
             if not thePart.available:
                 try:

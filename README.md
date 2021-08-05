@@ -26,6 +26,7 @@ Create an environment file at `.env`:
 ```
 RB_API_KEY=BINGBANGBOING
 BROWSER=firefox
+PRIMARY=webrick
 ```
 
 Available settings for `BROWSER` are:
@@ -33,6 +34,11 @@ Available settings for `BROWSER` are:
   chrome
   edge
   firefox
+```
+
+Available settings for `PRIMARY` are:
+```
+  webrick [anything else here will search Vonado first]
 ```
 
 Selenium setup:
@@ -117,7 +123,7 @@ Part,Color,Quantity,root,LEGOColor,lots,unit,total,link,available,color_availabl
 
 ## Notes:
 
-This script invokes a search just like the search field on the Webricks [and posibly Vonado] website.  If there are results returned, it then looks through them for a result where the part URL contains the Bricklink ID (without additional numbers) and does not contain "moc".  For example, if you're searching for "3004" you'll get these results:
+This script invokes a search just like the search field on Webricks and Vonado [sequence depends on the `PRIMARY` setting] website.  If there are results returned, it then looks through them for a result where the part URL contains the Bricklink ID (without additional numbers) and does not contain "moc".  For example, if you're searching for "3004" you'll get these results:
 - https://www.vonado.com/brick-1x2-3004.html
 - https://www.vonado.com/cavity-w-leads-30046.html
 - https://www.vonado.com/window-1x2x2-2-3-with-rounded-top-30044.html
@@ -129,10 +135,10 @@ You only want the first, so a match is considered: "contains the bricklink ID, p
 
 In this specific case, the "moc" filter is redundant, but it could be that some MOC will have the same number as a part, so belt-and-suspenders.
 
-If a part is not found on Webricks, then Vonado is searched.
-If a part is found on Webricks, but not in the desired color, then Vonado is searched and the part info is only updated if the color is found on Vonado.
+If a part is not found on the first, then the other is searched.
+If a part is found on the first, but not in the desired color, then the second is searched and the part info is only updated if the color is found on Vonado.
 
-Webricks is searched first because parts are sold by the each there.  Vonado is always lots of 10.
+You may want to search Webricks first because parts are sold by the each there.  Vonado parts are always lots of 10.  Personally I typically order from Vonado since I like building up the stock of spares.
 
 The script grabs the alternate molds from rebrickable for each part and searches for those as well.  This *should* mean that a "Part not found" truly means it is not found on either Webricks or Vonado.
 
