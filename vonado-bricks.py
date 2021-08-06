@@ -3,6 +3,7 @@ from urllib.error import HTTPError
 from urllib.error import URLError
 import csv
 import json
+import logging
 import os
 import re
 from pathlib import PurePath
@@ -28,35 +29,40 @@ from dotenv import load_dotenv
 load_dotenv()  # take environment variables from .env.
 
 RB_API_KEY = os.getenv('RB_API_KEY')
+USE_SELENIUM =  os.getenv('USE_SELENIUM')
+
+logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
 partList = []
 web_driver = None
 
-try:
-    if os.getenv('BROWSER') == 'chromium':
-        chrome_options = ChromeOpts()
-        chrome_options.add_argument("--headless")
-        web_driver = webdriver.Chrome(ChromeDriverManager(chrome_type = ChromeType.CHROMIUM).install())
+if USE_SELENIUM:
+    try:
+        if os.getenv('BROWSER') == 'chromium':
+            chrome_options = ChromeOpts()
+            chrome_options.add_argument("--headless")
+            web_driver = webdriver.Chrome(ChromeDriverManager(chrome_type = ChromeType.CHROMIUM).install())
 
-    if os.getenv('BROWSER') == 'firefox':
-        firefox_options = FirefoxOpts()
-        firefox_options.add_argument("--headless")
-        web_driver = webdriver.Firefox(executable_path = GeckoDriverManager().install(), options=firefox_options)
+        if os.getenv('BROWSER') == 'firefox':
+            firefox_options = FirefoxOpts()
+            firefox_options.add_argument("--headless")
+            web_driver = webdriver.Firefox(executable_path = GeckoDriverManager().install(), options=firefox_options)
 
-    if os.getenv('BROWSER') == 'msie':
-        web_driver = webdriver.Ie(IEDriverManager().install())
+        if os.getenv('BROWSER') == 'msie':
+            web_driver = webdriver.Ie(IEDriverManager().install())
 
-    if os.getenv('BROWSER') == 'edge':
-        web_driver = webdriver.Edge(EdgeChromiumDriverManager().install())
+        if os.getenv('BROWSER') == 'edge':
+            web_driver = webdriver.Edge(EdgeChromiumDriverManager().install())
 
-    if web_driver == None:
-        chrome_options = ChromeOpts()
-        chrome_options.add_argument("--headless")
-        web_driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
-except Exception as ex:
-    print(f"cannot initialize {os.getenv('BROWSER')} browser option:")
-    print(f"{ex}")
-    exit()
+        if web_driver == None:
+            chrome_options = ChromeOpts()
+            chrome_options.add_argument("--headless")
+            web_driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+    except Exception as ex:
+        logging.error(f"Exception while creating webdriver: {ex}")
+        print(f"cannot initialize {os.getenv('BROWSER')} browser option:")
+        print(f"{ex}")
+        exit()
 
 def rebrickableColorToLEGO(colornum):
     """
@@ -76,20 +82,25 @@ def isColorAvailable(partURL, colornum):
 
     if colornum > -1:
         web_driver.get(partURL)
-        delay = 30 # seconds
+        delay = 60 # seconds
+        myElem = None
         try:
-            myElem = WebDriverWait(web_driver, delay).until(EC.presence_of_element_located((By.CLASS_NAME, 'swatch-attribute')))
-
             available_colors=web_driver.find_elements_by_class_name("swatch-option")
     
             for i in available_colors:
                 title = i.get_attribute('aria-label')
+                logging.info(f"checking {title} for: {colornum}")
                 if title.startswith(f"{colornum}-"):
+                    logging.info(f"Found it")
                     return True
 
         except TimeoutException:
             print("Could not get color information.  This may be because the page load timed out or because the page is for a single color.")
+
+        except Exception as ex:
+            print(f"{ex}")
     
+    logging.info(f"Nope")
     return False 
 
 def countFileLines(file_path):
@@ -248,6 +259,16 @@ wbPos = 0 if os.getenv('PRIMARY') == 'webrick' else 99
 
 vendors.append(Vendor('Vonado', 'https://www.vonado.com/catalogsearch/result/?q=', 10))
 vendors.insert(wbPos, Vendor('Webrick', 'https://www.webrick.com/catalogsearch/result/?q=', 1))
+
+class Color:
+
+    ID = -1
+    label = "None"
+    price = 0
+
+    def __init__(self, ID, label):
+        self.ID = ID
+        self.label = label
   
 def getPartRoot(partID):
     rootPartID = partID
@@ -365,28 +386,35 @@ def getHeaders(firstline, delim):
 
     return headers
 
+def getColorDataOutOfPage(res2):
+    colorswatches = {}
+
+    script = res2.find_all('script')
+    for scr in script:
+        if scr.text.__contains__('data-role=swatch-options'):
+            try:
+                colorswatches = json.loads(scr.text)
+            except Exception as ex:
+                logging.error(f"Could not find color information in page: {ex}")
+            break
+
+    return colorswatches
+
 def firstLevelCheck(thePart, doublecheck=False):
+    logging.info(f"---------------------------------------------------")
+    logging.info(f"Begin check for {thePart.ID} in color {thePart.color} ({thePart.LEGOColor}) ")
     partQty = thePart.qty
 
     for vnd in vendors:
         for partNum in thePart.altIDs:
             if not thePart.available:
+                logging.info(f"part not found yet; checking {vnd.name} for: {thePart.ID} as {partNum}")
                 try:
                     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.3'}
                     reg_url = vnd.searchURL + partNum
                     req = Request(url=reg_url, headers=headers) 
                     html = urlopen(req)
 
-                except HTTPError as e:
-
-                    print(f"{reg_url} : HTTPError")
-                    print(e)
-
-                except URLError:
-
-                    print(f"{thePart.ID} : Server down or incorrect domain")
-
-                else:
                     res = BeautifulSoup(html.read(),"html5lib")
 
                     tags = res.findAll("div", {"class": "message notice"})
@@ -400,30 +428,99 @@ def firstLevelCheck(thePart, doublecheck=False):
                                 if re.search(f"-{partNum}[\.\-]", link, re.IGNORECASE):
                                     if "moc" not in link:
                                         # we've found the right search result; get the part page
-                                        # this could of course be combined with the selenium pull of the page below
+                                        colorList = []
+                                        swatch_dict = {}
+                                        idx = 0
                                         req2 = Request(url=link, headers=headers) 
-                                        html2 = urlopen(req)
+                                        html2 = urlopen(req2)
                                         res2 = BeautifulSoup(html2.read(),"html5lib")
+                                        try:
+                                            price_tag = res2.find("span", {"class": "price-wrapper"})
+                                            unit_price = float(price_tag['data-price-amount'])
+                                        except Exception as ex:
+                                            logging.error(f"Error while getting base price: {ex}")
+                                            unit_price=0
 
-                                        price_tag = res2.find("span", {"class": "price-wrapper"})
-                                        unit_price = float(price_tag['data-price-amount'])
+                                        total_price = 0
+                                        hasColor = False
 
                                         lotCount = partQty//vnd.skuQty
 
                                         if partQty%vnd.skuQty > 0:
                                             lotCount = lotCount + 1
 
+                                        if USE_SELENIUM:
+                                            logging.info(f"checking {link} for: {thePart.LEGOColor} with selenium")
+                                            hasColor = isColorAvailable(link, thePart.LEGOColor)
+                                            logging.info(f"hasColor: {hasColor}")
+
+                                        else:    
+                                            logging.info(f"extracting color data from page via script tags")
+                                            while len(swatch_dict) == 0 and idx < 6:
+                                                idx = idx + 1
+                                                logging.info(f"color data retrieval attempt: {idx}")
+                                                if html2 is None:
+                                                    req2 = Request(url=link, headers=headers) 
+                                                    html2 = urlopen(req2)
+                                                    res2 = BeautifulSoup(html2.read(),"html5lib")
+
+                                                swatch_dict = getColorDataOutOfPage(res2)
+                                                if len(swatch_dict) == 0:
+                                                    logging.info(f"Didn't find any color data")
+                                                
+                                            if len(swatch_dict) > 0:
+                                                unit_price = 0
+                                                hasColor = False
+
+                                                a = swatch_dict["[data-role=swatch-options]"]["Magento_Swatches/js/swatch-renderer"]["jsonConfig"]
+                                                prices = a["optionPrices"]
+                                                c = a["attributes"]
+                                                for item in c.items():
+                                                    j = item[1]
+                                                    if type(j) is dict:
+                                                        if j["position"] == '0':
+                                                            # this contains the list of colors
+                                                            colors = j['options']
+                                                            logging.info(f"swatches found: {len(colors)}")
+                                                            for color in colors:
+                                                                if len(color["products"]) > 0 and color["id"] is not None:
+                                                                    # it's used for this part
+                                                                    product = color["products"][0]
+                                                                    # split label on '-'
+                                                                    parts = color["label"].split('-')
+                                                                    this = Color(parts[0], parts[1])
+                                                                    this.price = prices[product]["finalPrice"]["amount"]
+                                                                    colorList.append(this)
+
+                                                for color in colorList:
+                                                    hasColor = hasColor or int(color.ID) == int(thePart.LEGOColor)
+                                                    if hasColor and total_price == 0:
+                                                        # pull pricing for this color
+                                                        unit_price = color.price
+                                            else:
+                                                logging.error(f"Could not find color information in page after {idx} tries.")
+                                                print(f"No color data for {partNum} after {idx} tries.")
+
                                         total_price = lotCount * unit_price
 
-                                        hasColor = isColorAvailable(link, thePart.LEGOColor)
-
                                         if (not doublecheck) or (hasColor and doublecheck):
+                                            logging.info(f"Found instance of {thePart.ID}.")
+                                            if doublecheck:
+                                                logging.info(f"Previous instance was wrong color.")
                                             thePart.colorAvailable = hasColor
                                             thePart.available = True
                                             thePart.lotCount = lotCount
                                             thePart.unit_price = unit_price
                                             thePart.total_price = total_price
                                             thePart.link = link
+
+                except HTTPError as he:
+                    logging.error(f"HTTPError: {he} on {reg_url}")
+
+                except URLError as ue:
+
+                    logging.error(f"URLError: {ue} on {reg_url}")
+                    print(f"{thePart.ID} : Server down or incorrect domain")
 
                     
     return thePart
@@ -445,7 +542,7 @@ def reportResults(thePart, idx, ct):
         if thePart.color < 0:
             outputString = f"{idx}/{ct} - {thePart.ID} : {thePart.link} - Color not specified"
         else:
-            outputString = f"{idx}/{ct} - {thePart.ID} : {thePart.link} - Color {thePart.color} ({thePart.LEGOColor}) : {thePart.colorAvailable}"
+            outputString = f"{idx}/{ct} - {thePart.ID} : {thePart.link} - Color {thePart.color} ({thePart.LEGOColor}) available: {thePart.colorAvailable}"
 
     print(outputString)
 
@@ -534,8 +631,11 @@ def processFile(file_name):
     writeResults(partList, file_name, headers, delim)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='program1 ')
+    parser = argparse.ArgumentParser(description='vonado-bricks')
     parser.add_argument('-i','--input', help='Input file name',required=True)
+    # parser.add_argument('-r','--rb-api', help='Rebrickable API key',required=True)
+    # parser.add_argument('-b','--browser', help='Browser to use',required=True, choices=['chrome', 'firefox', 'edge'])
+    # parser.add_argument('-p','--primary', help='Site to search first',required=True, choices=['webrick', 'vonado'])
     args = parser.parse_args()
     processFile(args.input)
     if web_driver is not None:
