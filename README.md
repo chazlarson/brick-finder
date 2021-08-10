@@ -196,7 +196,7 @@ https://www.vonado.com/flat-tile-1x2-3069-trans-clear.html
 That page has no color chart, and no lot size.  The title of the page seems to indicate it's just one color, and pricing is in line with a lot of 10 of 1x2 plates:
 https://www.vonado.com/plate-1x2-3023.html
 
-so it's exactly clear what to do with that.  It is the only result for 3069 1x2 tile on either site.
+so it's not exactly clear what to do with that.  It is the only result for 3069 1x2 tile on either site.
 
 ## Future possibilities
 
