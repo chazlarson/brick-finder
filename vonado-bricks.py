@@ -70,13 +70,15 @@ def rebrickableColorToLEGO(colornum):
     :param colornum:
     :return:
     """
+    default = {'name': 'Unknown', 'Lego': colornum}
+
     if colornum < 0:
-        return colornum
+        return default
     
     try:
-        return color_data[colornum]['Lego']
+        return color_data[colornum]
     except:
-        return colornum
+        return default
 
 def isColorAvailable(partURL, colornum):
 
@@ -116,16 +118,52 @@ def countXMLTags(file_path):
         dom = parseString(data)
         return len(dom.getElementsByTagName('ITEM'))
 
+class Color:
+
+    _ID = -1
+    _label = "Unknown"
+    _price = 0
+
+    def __init__(self, ID, label):
+        self._ID = ID
+        self._label = label
+  
+    @property
+    def ID(self):
+        return self._ID
+       
+    @ID.setter
+    def ID(self, a):
+        self._ID = a
+
+    @property
+    def label(self):
+        return self._label
+       
+    @label.setter
+    def label(self, a):
+        self._label = a
+
+    @property
+    def price(self):
+        return self._price
+       
+    @price.setter
+    def price(self, a):
+        self._price = a
+
 class Part:
 
     def __init__(self, partID, partColor, partQty):
         rb_part = get_rebrickable_details(partID)
+        rb_LegoColor = rebrickableColorToLEGO(partColor)
         self._ID = partID
         self._rootID = getPartRoot(partID)
         self._altIDs = rb_part['altIDs']
-        self._color = partColor
-        self._LEGOColor = rebrickableColorToLEGO(partColor)
         self._qty = partQty
+        self._color = Color(partColor, rb_LegoColor['name'])
+        self._LEGOColor = Color(rb_LegoColor['Lego'], rb_LegoColor['name'])
+        self._priceColor = Color(partColor, rb_LegoColor['name'])
         self._lotCount = 0
         self._unit_price = 0
         self._total_price = 0
@@ -135,8 +173,8 @@ class Part:
         self._colorAvailable = False
 
     def __iter__(self):
-        return iter([self._ID, self._color, self._qty, self._rootID, self._LEGOColor,
-                   self._lotCount, self._unit_price, self._total_price, self._link, self._available,
+        return iter([self._ID, self._color.ID, self._qty, self._rootID, self._LEGOColor.ID,
+                   self._lotCount, self._priceColor.ID, self._priceColor.label, self._unit_price, self._total_price, self._name, self._link, self._available,
                    self._colorAvailable])
 
     @property
@@ -170,6 +208,22 @@ class Part:
     @color.setter
     def color(self, a):
         self._color = a
+
+    @property
+    def priceColor(self):
+        return self._priceColor
+       
+    @priceColor.setter
+    def priceColor(self, a):
+        self._priceColor = a
+
+    @property
+    def priceColorLabel(self):
+        return self._priceColorLabel
+       
+    @priceColorLabel.setter
+    def priceColorLabel(self, a):
+        self._priceColorLabel = a
 
     @property
     def LEGOColor(self):
@@ -260,16 +314,7 @@ wbPos = 0 if os.getenv('PRIMARY') == 'webrick' else 99
 vendors.append(Vendor('Vonado', 'https://www.vonado.com/catalogsearch/result/?q=', 10))
 vendors.insert(wbPos, Vendor('Webrick', 'https://www.webrick.com/catalogsearch/result/?q=', 1))
 
-class Color:
 
-    ID = -1
-    label = "None"
-    price = 0
-
-    def __init__(self, ID, label):
-        self.ID = ID
-        self.label = label
-  
 def getPartRoot(partID):
     rootPartID = partID
     # Vonado doesn't use the letter at the end on something like 3070b
@@ -353,16 +398,8 @@ def isXML(file_name):
 def getHeaders(firstline, delim):
     if len(firstline) == 0:
         headers = ["part"]
-        headers.append("root")
         headers.append("color")
-        headers.append("LEGOColor")
         headers.append("qty")
-        headers.append("lots")
-        headers.append("unit")
-        headers.append("total")
-        headers.append("link")
-        headers.append("available")
-        headers.append("color_available")
     else:
         headers = firstline.split(delim)
 
@@ -371,18 +408,25 @@ def getHeaders(firstline, delim):
         # Get rid of the linefeed at the end
         headers[columncount-1] = headers[columncount-1].rstrip()
 
+        if columncount == 4:
+            if headers[3] == "Is Spare":
+                headers.pop()
+
         if columncount == 1:
             headers.append("color")
             headers.append("qty")
 
-        headers.append("root")
-        headers.append("LEGOColor")
-        headers.append("lots")
-        headers.append("unit")
-        headers.append("total")
-        headers.append("link")
-        headers.append("available")
-        headers.append("color_available")
+    headers.append("root")
+    headers.append("LEGOColor")
+    headers.append("lots")
+    headers.append("priceColor")
+    headers.append("priceColorName")
+    headers.append("unit")
+    headers.append("total")
+    headers.append("name")
+    headers.append("link")
+    headers.append("available")
+    headers.append("color_available")
 
     return headers
 
@@ -442,21 +486,21 @@ def firstLevelCheck(thePart, doublecheck=False):
                                             unit_price=0
 
                                         total_price = 0
-                                        hasColor = False
-
+                                        foundColor = False
+                                        priceColor = thePart.LEGOColor
                                         lotCount = partQty//vnd.skuQty
 
                                         if partQty%vnd.skuQty > 0:
                                             lotCount = lotCount + 1
 
                                         if USE_SELENIUM:
-                                            logging.info(f"checking {link} for: {thePart.LEGOColor} with selenium")
-                                            hasColor = isColorAvailable(link, thePart.LEGOColor)
-                                            logging.info(f"hasColor: {hasColor}")
+                                            logging.info(f"checking {link} for: {thePart.LEGOColor.ID} with selenium")
+                                            foundColor = isColorAvailable(link, thePart.LEGOColor.ID)
+                                            logging.info(f"hasColor: {foundColor}")
 
                                         else:    
                                             logging.info(f"extracting color data from page via script tags")
-                                            while len(swatch_dict) == 0 and idx < 6:
+                                            while len(swatch_dict) == 0 and idx < 12:
                                                 idx = idx + 1
                                                 logging.info(f"color data retrieval attempt: {idx}")
                                                 if html2 is None:
@@ -467,10 +511,11 @@ def firstLevelCheck(thePart, doublecheck=False):
                                                 swatch_dict = getColorDataOutOfPage(res2)
                                                 if len(swatch_dict) == 0:
                                                     logging.info(f"Didn't find any color data")
+                                                    html2 = None
                                                 
                                             if len(swatch_dict) > 0:
                                                 unit_price = 0
-                                                hasColor = False
+                                                foundColor = False
 
                                                 a = swatch_dict["[data-role=swatch-options]"]["Magento_Swatches/js/swatch-renderer"]["jsonConfig"]
                                                 prices = a["optionPrices"]
@@ -487,28 +532,45 @@ def firstLevelCheck(thePart, doublecheck=False):
                                                                     # it's used for this part
                                                                     product = color["products"][0]
                                                                     # split label on '-'
+                                                                    # need to deal with "Trans-clear"
                                                                     parts = color["label"].split('-')
                                                                     this = Color(parts[0], parts[1])
+                                                                    if len(parts) == 3:
+                                                                        this = Color(parts[0], f"{parts[1]}-{parts[2]}")
                                                                     this.price = prices[product]["finalPrice"]["amount"]
                                                                     colorList.append(this)
 
+                                                getCheapest = int(thePart.color.ID) == 9999
+                                                if getCheapest and unit_price == 0:
+                                                    unit_price=9999
+
                                                 for color in colorList:
-                                                    hasColor = hasColor or int(color.ID) == int(thePart.LEGOColor)
-                                                    if hasColor and total_price == 0:
-                                                        # pull pricing for this color
-                                                        unit_price = color.price
+                                                    if getCheapest:
+                                                        if color.price < unit_price:
+                                                            logging.info(f"new low price: {color.price} for {color.ID}.")
+                                                            unit_price = color.price
+                                                            priceColor = Color(color.ID, color.label)
+                                                            foundColor = True
+                                                    else:
+                                                        isDesiredColor = int(color.ID) == int(thePart.LEGOColor.ID)
+
+                                                        if (not foundColor) and isDesiredColor:
+                                                            logging.info(f"Don't have the color yet, and this is the desired color")
+                                                            unit_price = color.price
+                                                            foundColor = True
                                             else:
                                                 logging.error(f"Could not find color information in page after {idx} tries.")
                                                 print(f"No color data for {partNum} after {idx} tries.")
 
                                         total_price = lotCount * unit_price
 
-                                        if (not doublecheck) or (hasColor and doublecheck):
+                                        if (not doublecheck) or (foundColor and doublecheck):
                                             logging.info(f"Found instance of {thePart.ID}.")
                                             if doublecheck:
                                                 logging.info(f"Previous instance was wrong color.")
-                                            thePart.colorAvailable = hasColor
+                                            thePart.colorAvailable = foundColor
                                             thePart.available = True
+                                            thePart.priceColor = priceColor
                                             thePart.lotCount = lotCount
                                             thePart.unit_price = unit_price
                                             thePart.total_price = total_price
@@ -539,10 +601,12 @@ def getPartInfo(partID, partColor, partQty):
 def reportResults(thePart, idx, ct):
     outputString = f"{idx}/{ct} - {thePart.ID} : Part not found: {thePart.name}"
     if thePart.available:
-        if thePart.color < 0:
+        if thePart.color.ID < 0:
             outputString = f"{idx}/{ct} - {thePart.ID} : {thePart.link} - Color not specified"
+        elif thePart.color.ID == 9999:
+            outputString = f"{idx}/{ct} - {thePart.ID} : {thePart.link} - Color {thePart.priceColor.ID} ({thePart.priceColor.label}) used for 'Any Color': {thePart.colorAvailable}"
         else:
-            outputString = f"{idx}/{ct} - {thePart.ID} : {thePart.link} - Color {thePart.color} ({thePart.LEGOColor}) available: {thePart.colorAvailable}"
+            outputString = f"{idx}/{ct} - {thePart.ID} : {thePart.link} - Color {thePart.color.ID} ({thePart.LEGOColor.ID}) ({thePart.color.label}) available: {thePart.colorAvailable}"
 
     print(outputString)
 
