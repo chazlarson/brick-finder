@@ -13,7 +13,7 @@ This dumb script can help.  It's pretty brittle and works for me.
   - https://www.python.org/
 - git
   - https://git-scm.com/download
-- Running Mac OS X or Ubuntu Linux
+- Running Mac OS X, Linux, Windows
 - Rebrickable API Key
 
 ## Getting started:
@@ -25,36 +25,12 @@ git clone https://github.com/chazlarson/vonado-bricks.git && cd vonado-bricks
 Create an environment file at `.env`:
 ```
 RB_API_KEY=BINGBANGBOING
-BROWSER=firefox
 PRIMARY=webrick
 ```
-
-Available settings for `BROWSER` are:
-```
-  chrome
-  edge
-  firefox
-```
-
 Available settings for `PRIMARY` are:
 ```
   webrick [anything else here will search Vonado first]
 ```
-
-Selenium setup:
-
-Mac OS X: 
-- Install the browser matching the setting in `.env`
-  - `edge` not working
-
-Linux: 
-- Install the browser matching the setting in `.env`
-  - `edge` not working
-  
-Windows: 
-- Install the browser matching the setting in `.env`
-  - `firefox` and `edge` working fine
-  - `chrome` works but throws a lot of warnings in the output.
 
 There's a `quick-test.sh` that will run through the rest of this for all three sample input files [it creates and deletes the venv] if you just want to watch it.  
 
@@ -217,6 +193,13 @@ so it's not exactly clear what to do with that.  It is the only result for 3069 
 
 Previous versions of this script used selenium to extract the color information, since that table of colors is loaded with Javascript.  However, the data used to build the table is present in a script tag in the initial page, so the color-check now processes that tag to gather the color [and price-per-color, which the selenium method didn't do].  If for some reason you want to try the selenium method, read on.
 
+Note: It's quite probable that the Selenium method has been broken by changes in the color handling.
+
+Install the Selenium requirements:
+```
+pip install -r requirements-selenium.txt
+```
+
 In your `.env` file, add `BROWSER` and `SELENIUM` entries:
 ```
 RB_API_KEY=BINGBANGBOING
@@ -245,5 +228,7 @@ Linux:
 Windows: 
 - `firefox` and `edge` working fine
 - `chrome` works but throws a lot of warnings in the output.
+
+Now run as usual.
 
 That's it.
