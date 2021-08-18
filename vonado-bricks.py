@@ -12,18 +12,6 @@ from detect_delimiter import detect
 import argparse
 import xml.etree.cElementTree as ET
 from xml.dom.minidom import parseString
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options as ChromeOpts
-from selenium.webdriver.firefox.options import Options as FirefoxOpts
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
-from webdriver_manager.chrome import ChromeDriverManager
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
-from webdriver_manager.microsoft import IEDriverManager
-from webdriver_manager.firefox import GeckoDriverManager
-from webdriver_manager.utils import ChromeType
 from dotenv import load_dotenv
 
 load_dotenv()  # take environment variables from .env.
@@ -37,6 +25,19 @@ partList = []
 web_driver = None
 
 if USE_SELENIUM:
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options as ChromeOpts
+    from selenium.webdriver.firefox.options import Options as FirefoxOpts
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.by import By
+    from selenium.common.exceptions import TimeoutException
+    from webdriver_manager.chrome import ChromeDriverManager
+    from webdriver_manager.microsoft import EdgeChromiumDriverManager
+    from webdriver_manager.microsoft import IEDriverManager
+    from webdriver_manager.firefox import GeckoDriverManager
+    from webdriver_manager.utils import ChromeType
+
     try:
         if os.getenv('BROWSER') == 'chromium':
             chrome_options = ChromeOpts()
@@ -446,7 +447,7 @@ def getColorDataOutOfPage(res2):
 
 def firstLevelCheck(thePart, doublecheck=False):
     logging.info(f"---------------------------------------------------")
-    logging.info(f"Begin check for {thePart.ID} in color {thePart.color} ({thePart.LEGOColor}) ")
+    logging.info(f"Begin check for {thePart.ID} in color {thePart.color.ID} ({thePart.LEGOColor.ID}) ")
     partQty = thePart.qty
 
     for vnd in vendors:

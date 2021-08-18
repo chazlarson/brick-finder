@@ -37,11 +37,12 @@ There's a `quick-test.sh` that will run through the rest of this for all three s
 The sample input file contains a few different cases:
 ```
 Part,Color,Quantity
-32064a,4,81 # part not available on webrick, available on vonado with correct color
-32064a,5,9  # part not available on webrick, available on vonado but not in the requested color
-63965,0,40  # part available on webrick in the wrong color; not available from vonado in correct color, either
-2444,0,17   # part available on webrick under alternate mold
-4732,72,2   # part not available on either
+32064a,4,81  # part not available on webrick, available on vonado with correct color
+32064a,5,9   # part not available on webrick, available on vonado but not in the requested color
+63965,0,40   # part available on webrick in the wrong color; not available from vonado in correct color, either
+2444,0,17    # part available on webrick under alternate mold
+4732,72,2    # part not available on either
+30374,9999,1 # Part requested in "Any Color"
 ```
 
 Create and activate a virtual environment:
@@ -72,28 +73,41 @@ $ python vonado-bricks.py -i input.txt.sample
 ================
 Processing input.txt.sample
 ================
-1/5 - 32064a : https://www.vonado.com/brick-1x2-with-cross-hole-32064.html - Color 4 (21) available: True
-2/5 - 32064a : https://www.vonado.com/brick-1x2-with-cross-hole-32064.html - Color 5 (221) available: False
-3/5 - 63965 : https://www.vonado.com/stick-6m-w-flange-63965.html - Color 0 (26) available: True
-4/5 - 2444 : https://www.vonado.com/plate-2x2-one-hule-4-8-10247.html - Color 0 (26) available: True
-5/5 - 4732 : Part not found: Bracket 8 x 2 x 1 1/3
+1/6 - 32064a : https://www.vonado.com/brick-1x2-with-cross-hole-32064.html - Color 4 (21) (Red) available: True
+2/6 - 32064a : https://www.vonado.com/brick-1x2-with-cross-hole-32064.html - Color 5 (221) (Dark Pink) available: False
+3/6 - 63965 : https://www.webrick.com/stick-6m-w-flange-63965.html - Color 0 (26) (Black) available: False
+4/6 - 2444 : https://www.webrick.com/plate-2x2-one-hule-4-8-10247.html - Color 0 (26) (Black) available: False
+5/6 - 4732 : Part not found: Bracket 8 x 2 x 1 1/3
+6/6 - 3666 : https://www.webrick.com/plate-1x6-3666.html - Color 312 (Medium Dark Flesh) used for 'Any Color': True
 ```
 
 It also writes a csv that contains more information:
 ```
 $ cat input.txt-output.csv
-Part,Color,Quantity,root,LEGOColor,lots,unit,total,link,available,color_available
-32064a,4,81,32064,21,9,0.8,7.2,https://www.vonado.com/brick-1x2-with-cross-hole-32064.html,True,True
-32064a,5,9,32064,221,1,0.8,0.8,https://www.vonado.com/brick-1x2-with-cross-hole-32064.html,True,False
-63965,0,40,63965,26,40,0.03,1.2,https://www.webrick.com/stick-6m-w-flange-63965.html,True,False
-2444,0,17,2444,26,17,0.07,1.1900000000000002,https://www.webrick.com/plate-2x2-one-hule-4-8-10247.html,True,True
-4732,72,2,4732,199,0,0,0,,False,False
+Part,Color,Quantity,root,LEGOColor,lots,priceColor,priceColorName,unit,total,name,link,available,color_available
+32064a,4,81,32064,21,9,21,Red,0.82,7.38,Technic Brick 1 x 2 with Axle Hole Type 1 [+ Opening] and Bottom Pin,https://www.vonado.com/brick-1x2-with-cross-hole-32064.html,True,True
+32064a,5,9,32064,221,1,221,Dark Pink,0,0,Technic Brick 1 x 2 with Axle Hole Type 1 [+ Opening] and Bottom Pin,https://www.vonado.com/brick-1x2-with-cross-hole-32064.html,True,False
+63965,0,40,63965,26,40,26,Black,0,0,Bar 6L with Stop Ring,https://www.webrick.com/stick-6m-w-flange-63965.html,True,False
+2444,0,17,2444,26,17,26,Black,0,0,Plate Special 2 x 2 with 1 Pin Hole [Split Underside Ribs],https://www.webrick.com/plate-2x2-one-hule-4-8-10247.html,True,False
+4732,72,2,4732,199,0,72,Dark Bluish Gray,0,0,Bracket 8 x 2 x 1 1/3,,False,False
+3666,9999,15,3666,9999,15,312,Medium Dark Flesh,0.08,1.2,Plate 1 x 6,https://www.webrick.com/plate-1x6-3666.html,True,True
 ```
 
 There's also a log file that gets recreated with each run, `app.log`:
 ```
 root - INFO - ---------------------------------------------------
-root - INFO - Begin check for 32064a in color 4 (21)
+root - INFO - Begin check for 32064a in color 4 (21) 
+root - INFO - part not found yet; checking Webrick for: 32064a as 32064
+root - INFO - part not found yet; checking Webrick for: 32064a as 32064b
+root - INFO - part not found yet; checking Webrick for: 32064a as 32064c
+root - INFO - part not found yet; checking Vonado for: 32064a as 32064
+root - INFO - extracting color data from page via script tags
+root - INFO - color data retrieval attempt: 1
+root - INFO - swatches found: 49
+root - INFO - Don't have the color yet, and this is the desired color
+root - INFO - Found instance of 32064a.
+root - INFO - ---------------------------------------------------
+root - INFO - Begin check for 32064a in color 5 (221) 
 root - INFO - part not found yet; checking Webrick for: 32064a as 32064
 root - INFO - part not found yet; checking Webrick for: 32064a as 32064b
 root - INFO - part not found yet; checking Webrick for: 32064a as 32064c
@@ -103,24 +117,14 @@ root - INFO - color data retrieval attempt: 1
 root - INFO - swatches found: 49
 root - INFO - Found instance of 32064a.
 root - INFO - ---------------------------------------------------
-root - INFO - Begin check for 32064a in color 5 (221)
-root - INFO - part not found yet; checking Webrick for: 32064a as 32064
-root - INFO - part not found yet; checking Webrick for: 32064a as 32064b
-root - INFO - part not found yet; checking Webrick for: 32064a as 32064c
-root - INFO - part not found yet; checking Vonado for: 32064a as 32064
-root - INFO - extracting color data from page via script tags
-root - INFO - color data retrieval attempt: 1
-root - INFO - swatches found: 49
-root - INFO - Found instance of 32064a.
-root - INFO - ---------------------------------------------------
-root - INFO - Begin check for 63965 in color 0 (26)
+root - INFO - Begin check for 63965 in color 0 (26) 
 root - INFO - part not found yet; checking Webrick for: 63965 as 63965
 root - INFO - extracting color data from page via script tags
 root - INFO - color data retrieval attempt: 1
 root - INFO - swatches found: 1
 root - INFO - Found instance of 63965.
 root - INFO - ---------------------------------------------------
-root - INFO - Begin check for 2444 in color 0 (26)
+root - INFO - Begin check for 2444 in color 0 (26) 
 root - INFO - part not found yet; checking Webrick for: 2444 as 2444
 root - INFO - part not found yet; checking Webrick for: 2444 as 10247
 root - INFO - extracting color data from page via script tags
@@ -128,9 +132,22 @@ root - INFO - color data retrieval attempt: 1
 root - INFO - swatches found: 49
 root - INFO - Found instance of 2444.
 root - INFO - ---------------------------------------------------
-root - INFO - Begin check for 4732 in color 72 (199)
+root - INFO - Begin check for 4732 in color 72 (199) 
 root - INFO - part not found yet; checking Webrick for: 4732 as 4732
 root - INFO - part not found yet; checking Vonado for: 4732 as 4732
+root - INFO - ---------------------------------------------------
+root - INFO - Begin check for 3666 in color 9999 (9999) 
+root - INFO - part not found yet; checking Webrick for: 3666 as 3666
+root - ERROR - Error while getting base price: 'NoneType' object is not subscriptable
+root - INFO - extracting color data from page via script tags
+root - INFO - color data retrieval attempt: 1
+root - ERROR - Could not find color information in page: Expecting value: line 5 column 31 (char 130)
+root - INFO - Didn't find any color data
+root - INFO - color data retrieval attempt: 2
+root - INFO - swatches found: 52
+root - INFO - new low price: 0.09 for 1.
+root - INFO - new low price: 0.08 for 312.
+root - INFO - Found instance of 3666.
 ```
 
 ## Notes:
@@ -158,11 +175,13 @@ The script grabs the alternate molds from rebrickable for each part and searches
 
 Vonado and Webrick appear to use the same server software; there's a javascript tag in the page that contains a JSON object listing available colors and prices for the part.  This script finds that tag, then parses the JSON object to extract color information.  This is of course fragile, but it's the best we have.
 
-Webrick, especially, seems to run into sporadic trouble building that JSON object [in this case that script tag contains a PHP error rather than valid JSON].  For this reason, the script tries 6 [six] times to load the page and get a valid piece of color-listing JSON.  If that fails, there will be a note to this effect in the console output and the color availibility will be "False". 
+Webrick, especially, seems to run into sporadic trouble building that JSON object [in this case that script tag contains a PHP error rather than valid JSON].  For this reason, the script tries 12 [twelve] times to load the page and get a valid piece of color-listing JSON.  If that fails, there will be a note to this effect in the console output and the color availability will be "False". 
 
 I haven't seen this happen with Vonado, at least not with the frequency that it happens with Webrick.
 
 Even with this caveat, this method is much faster and more reliable than loading the page via selenium.  It also allows me to get pricing information for the specific color, which is more involved with selenium.
+
+In the "Any Color" case, it loops through all the colors that the part is available in and picks the first one with the lowest price.  More often than not this is white since usually all the colors are the same price and white is the first color listed, if it is listed.  The log above shows a part where white *wasn't* the cheapest.
 
 # Edge cases
 
@@ -172,28 +191,29 @@ https://www.vonado.com/flat-tile-1x2-3069-trans-clear.html
 That page has no color chart, and no lot size.  The title of the page seems to indicate it's just one color, and pricing is in line with a lot of 10 of 1x2 plates:
 https://www.vonado.com/plate-1x2-3023.html
 
-so it's not exactly clear what to do with that.  It is the only result for 3069 1x2 tile on either site.
+so it's not exactly clear what to do with that.  It is the only result for 3069 1x2 tile on either site as of this writing.
 
 ## Future possibilities
 
 - support for other sites
   - ~~webrick [looks to be same site backend as Vonado]~~
   - AliExpress [extracting results will be fragile]
-- ~~local database to store alternate part numbers~~ [not needed, loaded on the fly]
 - support for exported BrickLink wanted list XML
-- ~~Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS; also hampered by remarks above about vagary in color names and numbers]~~
 - Add parts to a shopping cart
 - Read and/or produce Excel docs
+- ~~local database to store alternate part numbers~~ [not needed, loaded on the fly]
+- ~~Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS; also hampered by remarks above about vagary in color names and numbers]~~
 - ~~Calc how many lots you need to buy (should be trivial if all parts are in lots of ten but I don't know that to be true)~~
 - ~~Make the input file parsing a little more robust.~~ Now uses Rebrickable CSV as default.
 - ~~Calc ballpark cost~~
 - ~~account for varying prices per part~~
+- ~~pick the cheapest color for "Any Color" parts~~
 
-## Selenium setup [deprecated]:
+## Selenium setup [deprecated and NOT RECOMMENDED]:
 
 Previous versions of this script used selenium to extract the color information, since that table of colors is loaded with Javascript.  However, the data used to build the table is present in a script tag in the initial page, so the color-check now processes that tag to gather the color [and price-per-color, which the selenium method didn't do].  If for some reason you want to try the selenium method, read on.
 
-Note: It's quite probable that the Selenium method has been broken by changes in the color handling.
+Note: It's quite probable that the Selenium method has been broken by changes in the color handling since deprecation.
 
 Install the Selenium requirements:
 ```
