@@ -1,0 +1,6 @@
+beautifulsoup4
+html5lib
+detect_delimiter
+selenium
+webdriver_manager
+python-dotenv
