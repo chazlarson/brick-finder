@@ -17,53 +17,11 @@ from dotenv import load_dotenv
 load_dotenv()  # take environment variables from .env.
 
 RB_API_KEY = os.getenv('RB_API_KEY')
-USE_SELENIUM =  os.getenv('USE_SELENIUM')
 
 logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
 partList = []
-web_driver = None
 
-if USE_SELENIUM:
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options as ChromeOpts
-    from selenium.webdriver.firefox.options import Options as FirefoxOpts
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.common.by import By
-    from selenium.common.exceptions import TimeoutException
-    from webdriver_manager.chrome import ChromeDriverManager
-    from webdriver_manager.microsoft import EdgeChromiumDriverManager
-    from webdriver_manager.microsoft import IEDriverManager
-    from webdriver_manager.firefox import GeckoDriverManager
-    from webdriver_manager.utils import ChromeType
-
-    try:
-        if os.getenv('BROWSER') == 'chromium':
-            chrome_options = ChromeOpts()
-            chrome_options.add_argument("--headless")
-            web_driver = webdriver.Chrome(ChromeDriverManager(chrome_type = ChromeType.CHROMIUM).install())
-
-        if os.getenv('BROWSER') == 'firefox':
-            firefox_options = FirefoxOpts()
-            firefox_options.add_argument("--headless")
-            web_driver = webdriver.Firefox(executable_path = GeckoDriverManager().install(), options=firefox_options)
-
-        if os.getenv('BROWSER') == 'msie':
-            web_driver = webdriver.Ie(IEDriverManager().install())
-
-        if os.getenv('BROWSER') == 'edge':
-            web_driver = webdriver.Edge(EdgeChromiumDriverManager().install())
-
-        if web_driver == None:
-            chrome_options = ChromeOpts()
-            chrome_options.add_argument("--headless")
-            web_driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
-    except Exception as ex:
-        logging.error(f"Exception while creating webdriver: {ex}")
-        print(f"cannot initialize {os.getenv('BROWSER')} browser option:")
-        print(f"{ex}")
-        exit()
 
 def rebrickableColorToLEGO(colornum):
     """
@@ -118,6 +76,22 @@ def countXMLTags(file_path):
         data = xml_file.read()
         dom = parseString(data)
         return len(dom.getElementsByTagName('ITEM'))
+
+# bricklink colors
+# https://www.bricklink.com/catalogColors.asp
+# colors in table like this:
+# <tr>
+#   <td align="RIGHT"><font face="Tahoma,Arial" size="2">1&nbsp;</font></td>  << BRICKLINK NUMBER
+#   <td bgcolor="FFFFFF"><a href="/catalogList.asp?v=2&amp;colorID=1"><img src="/images/dot.gif" width="15" height="15" border="0"></a></td>
+#   <td><img src="/images/dot.gif" width="3" height="1"></td>
+#   <td><font face="Tahoma,Arial" size="2">White&nbsp;</font></td>  << BRICKLINK COLOR NAME
+#   <td align="RIGHT"><font face="Tahoma,Arial" size="2">&nbsp;<a href="/catalogList.asp?catType=P&amp;colorPart=1&amp;v=3">12985</a>&nbsp;</font></td>
+#   <td align="RIGHT"><font face="Tahoma,Arial" size="2">&nbsp;<a href="/catalogList.asp?catType=S&amp;colorInSet=1&amp;v=3">9684</a>&nbsp;</font></td>
+#   <td align="RIGHT"><font face="Tahoma,Arial" size="2">&nbsp;<a href="/catalogList.asp?catType=P&amp;viewWanted=Y&amp;colorWanted=1&amp;dispView=W&amp;dispColor=1&amp;v=3">18457</a>&nbsp;</font></td>
+#   <td align="RIGHT"><font face="Tahoma,Arial" size="2">&nbsp;<a href="/browseList.asp?colorID=1&amp;itemType=P&amp;v=3">13045</a>&nbsp;</font></td>
+#   <td align="RIGHT"><font face="Tahoma,Arial" size="2">&nbsp;1949&nbsp;-&nbsp;2021&nbsp;</font></td>
+# </tr>
+# Perhaps I can match basedon name to get to the lego color?
 
 class Color:
 
@@ -494,74 +468,68 @@ def firstLevelCheck(thePart, doublecheck=False):
                                         if partQty%vnd.skuQty > 0:
                                             lotCount = lotCount + 1
 
-                                        if USE_SELENIUM:
-                                            logging.info(f"checking {link} for: {thePart.LEGOColor.ID} with selenium")
-                                            foundColor = isColorAvailable(link, thePart.LEGOColor.ID)
-                                            logging.info(f"hasColor: {foundColor}")
+                                        logging.info(f"extracting color data from page via script tags")
+                                        while len(swatch_dict) == 0 and idx < 12:
+                                            idx = idx + 1
+                                            logging.info(f"color data retrieval attempt: {idx}")
+                                            if html2 is None:
+                                                req2 = Request(url=link, headers=headers) 
+                                                html2 = urlopen(req2)
+                                                res2 = BeautifulSoup(html2.read(),"html5lib")
 
-                                        else:    
-                                            logging.info(f"extracting color data from page via script tags")
-                                            while len(swatch_dict) == 0 and idx < 12:
-                                                idx = idx + 1
-                                                logging.info(f"color data retrieval attempt: {idx}")
-                                                if html2 is None:
-                                                    req2 = Request(url=link, headers=headers) 
-                                                    html2 = urlopen(req2)
-                                                    res2 = BeautifulSoup(html2.read(),"html5lib")
+                                            swatch_dict = getColorDataOutOfPage(res2)
+                                            if len(swatch_dict) == 0:
+                                                logging.info(f"Didn't find any color data")
+                                                html2 = None
+                                            
+                                        if len(swatch_dict) > 0:
+                                            unit_price = 0
+                                            foundColor = False
 
-                                                swatch_dict = getColorDataOutOfPage(res2)
-                                                if len(swatch_dict) == 0:
-                                                    logging.info(f"Didn't find any color data")
-                                                    html2 = None
-                                                
-                                            if len(swatch_dict) > 0:
-                                                unit_price = 0
-                                                foundColor = False
+                                            a = swatch_dict["[data-role=swatch-options]"]["Magento_Swatches/js/swatch-renderer"]["jsonConfig"]
+                                            prices = a["optionPrices"]
+                                            c = a["attributes"]
+                                            for item in c.items():
+                                                j = item[1]
+                                                if type(j) is dict:
+                                                    if j["position"] == '0':
+                                                        # this contains the list of colors
+                                                        colors = j['options']
+                                                        logging.info(f"swatches found: {len(colors)}")
+                                                        for color in colors:
+                                                            if len(color["products"]) > 0 and color["id"] is not None:
+                                                                # it's used for this part
+                                                                product = color["products"][0]
+                                                                # split label on '-'
+                                                                # need to deal with "Trans-clear"
+                                                                parts = color["label"].split('-')
+                                                                this = Color(parts[0], parts[1])
+                                                                if len(parts) == 3:
+                                                                    this = Color(parts[0], f"{parts[1]}-{parts[2]}")
+                                                                this.price = prices[product]["finalPrice"]["amount"]
+                                                                colorList.append(this)
 
-                                                a = swatch_dict["[data-role=swatch-options]"]["Magento_Swatches/js/swatch-renderer"]["jsonConfig"]
-                                                prices = a["optionPrices"]
-                                                c = a["attributes"]
-                                                for item in c.items():
-                                                    j = item[1]
-                                                    if type(j) is dict:
-                                                        if j["position"] == '0':
-                                                            # this contains the list of colors
-                                                            colors = j['options']
-                                                            logging.info(f"swatches found: {len(colors)}")
-                                                            for color in colors:
-                                                                if len(color["products"]) > 0 and color["id"] is not None:
-                                                                    # it's used for this part
-                                                                    product = color["products"][0]
-                                                                    # split label on '-'
-                                                                    # need to deal with "Trans-clear"
-                                                                    parts = color["label"].split('-')
-                                                                    this = Color(parts[0], parts[1])
-                                                                    if len(parts) == 3:
-                                                                        this = Color(parts[0], f"{parts[1]}-{parts[2]}")
-                                                                    this.price = prices[product]["finalPrice"]["amount"]
-                                                                    colorList.append(this)
+                                            getCheapest = int(thePart.color.ID) == 9999
+                                            if getCheapest and unit_price == 0:
+                                                unit_price=9999
 
-                                                getCheapest = int(thePart.color.ID) == 9999
-                                                if getCheapest and unit_price == 0:
-                                                    unit_price=9999
+                                            for color in colorList:
+                                                if getCheapest:
+                                                    if color.price < unit_price:
+                                                        logging.info(f"new low price: {color.price} for {color.ID}.")
+                                                        unit_price = color.price
+                                                        priceColor = Color(color.ID, color.label)
+                                                        foundColor = True
+                                                else:
+                                                    isDesiredColor = int(color.ID) == int(thePart.LEGOColor.ID)
 
-                                                for color in colorList:
-                                                    if getCheapest:
-                                                        if color.price < unit_price:
-                                                            logging.info(f"new low price: {color.price} for {color.ID}.")
-                                                            unit_price = color.price
-                                                            priceColor = Color(color.ID, color.label)
-                                                            foundColor = True
-                                                    else:
-                                                        isDesiredColor = int(color.ID) == int(thePart.LEGOColor.ID)
-
-                                                        if (not foundColor) and isDesiredColor:
-                                                            logging.info(f"Don't have the color yet, and this is the desired color")
-                                                            unit_price = color.price
-                                                            foundColor = True
-                                            else:
-                                                logging.error(f"Could not find color information in page after {idx} tries.")
-                                                print(f"No color data for {partNum} after {idx} tries.")
+                                                    if (not foundColor) and isDesiredColor:
+                                                        logging.info(f"Don't have the color yet, and this is the desired color")
+                                                        unit_price = color.price
+                                                        foundColor = True
+                                        else:
+                                            logging.error(f"Could not find color information in page after {idx} tries.")
+                                            print(f"No color data for {partNum} after {idx} tries.")
 
                                         total_price = lotCount * unit_price
 

@@ -178,8 +178,6 @@ Webrick, especially, seems to run into sporadic trouble building that JSON objec
 
 I haven't seen this happen with Vonado, at least not with the frequency that it happens with Webrick.
 
-Even with this caveat, this method is much faster and more reliable than loading the page via selenium.  It also allows me to get pricing information for the specific color, which is more involved with selenium.
-
 In the "Any Color" case, it loops through all the colors that the part is available in and picks the first one with the lowest price.  More often than not this is white since usually all the colors are the same price and white is the first color listed, if it is listed.  The log above shows a part where white *wasn't* the cheapest.
 
 # Edge cases
@@ -207,47 +205,3 @@ so it's not exactly clear what to do with that.  It is the only result for 3069 
 - ~~Calc ballpark cost~~
 - ~~account for varying prices per part~~
 - ~~pick the cheapest color for "Any Color" parts~~
-
-## Selenium setup [deprecated and NOT RECOMMENDED]:
-
-Previous versions of this script used selenium to extract the color information, since that table of colors is loaded with Javascript.  However, the data used to build the table is present in a script tag in the initial page, so the color-check now processes that tag to gather the color [and price-per-color, which the selenium method didn't do].  If for some reason you want to try the selenium method, read on.
-
-Note: It's quite probable that the Selenium method has been broken by changes in the color handling since deprecation.
-
-Install the Selenium requirements:
-```
-pip install -r requirements-selenium.txt
-```
-
-In your `.env` file, add `BROWSER` and `SELENIUM` entries:
-```
-RB_API_KEY=BINGBANGBOING
-PRIMARY=webrick
-BROWSER=firefox
-SELENIUM=True
-```
-
-Available settings for `BROWSER` are:
-```
-  chrome
-  edge
-  firefox
-```
-
-If you don't specify a `BROWSER` the default is Chrome.
-
-Install the browser you want to use:
-
-Mac OS X: 
-- `edge` not working
-
-Linux: 
-- `edge` not working
-  
-Windows: 
-- `firefox` and `edge` working fine
-- `chrome` works but throws a lot of warnings in the output.
-
-Now run as usual.
-
-That's it.
