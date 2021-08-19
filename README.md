@@ -6,8 +6,7 @@ This dumb script can help.  It's pretty brittle and works for me.
 
 ## Assumptions:
 - You have a list of bricks in one of the following formats:
-  - Rebrickable CSV
-  - Bricklink XML
+  - Rebrickable CSV or XML
   - One Bricklink part ID per line [with a header row]
 - Python 3
   - https://www.python.org/
