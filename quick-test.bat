@@ -5,7 +5,7 @@ echo Setting up virtual environment
 python -m venv vonado-brick-test-env
 vonado-brick-test-env/bin/activate
 
-cls
+echo -----------------------------------------
 echo Installing requirements
 pip install -r requirements.txt
 

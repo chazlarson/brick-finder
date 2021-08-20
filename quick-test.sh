@@ -5,7 +5,7 @@ echo "Setting up virtual environment"
 python3 -m venv vonado-brick-test-env
 source vonado-brick-test-env/bin/activate
 
-clear
+echo "-----------------------------------------"
 echo "Installing requirements"
 pip install -r requirements.txt
 
@@ -41,7 +41,7 @@ cat input.xml-output.txt
 cp app.log input.xml.log
 
 echo "-----------------------------------------"
-echo "running BrickLink WAnted List XML"
+echo "running BrickLink Wanted List XML"
 echo "input file:"
 cat input.bricklink.xml.sample
 echo "Running script:"
