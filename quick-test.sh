@@ -10,6 +10,7 @@ echo "Installing requirements"
 pip install -r requirements.txt
 
 clear
+echo "-----------------------------------------"
 echo "running minimal file"
 echo "input file:"
 cat input-minimal.txt.sample
@@ -19,6 +20,7 @@ echo "output file:"
 cat input-minimal.txt-output.txt
 cp app.log input-minimal.txt.log
 
+echo "-----------------------------------------"
 echo "running Rebrickable csv"
 echo "input file:"
 cat input.txt.sample
@@ -28,7 +30,8 @@ echo "output file:"
 cat input.txt-output.txt
 cp app.log input.txt.log
 
-echo "running Bricklink XML"
+echo "-----------------------------------------"
+echo "running Rebrickable XML"
 echo "input file:"
 cat input.xml.sample
 echo "Running script:"
@@ -37,6 +40,17 @@ echo "output file:"
 cat input.xml-output.txt
 cp app.log input.xml.log
 
+echo "-----------------------------------------"
+echo "running BrickLink WAnted List XML"
+echo "input file:"
+cat input.bricklink.xml.sample
+echo "Running script:"
+python vonado-bricks.py -i input.bricklink.xml.sample -l True
+echo "output file:"
+cat input.bricklink.xml-output.txt
+cp app.log input.bricklink.xml.log
+
+echo "-----------------------------------------"
 echo "cleaning up"
 rm -fr vonado-brick-test-env
 rm -f input*-output.txt

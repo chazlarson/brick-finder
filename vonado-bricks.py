@@ -21,7 +21,13 @@ RB_API_KEY = os.getenv('RB_API_KEY')
 logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
 partList = []
+brickLinkColors = False
 
+def colorToLEGO(colornum, brickLinkColors):
+    if brickLinkColors:
+        return bricklinkColorToLEGO(colornum)
+    else:
+        return rebrickableColorToLEGO(colornum)
 
 def rebrickableColorToLEGO(colornum):
     """
@@ -39,30 +45,22 @@ def rebrickableColorToLEGO(colornum):
     except:
         return default
 
-def isColorAvailable(partURL, colornum):
+def bricklinkColorToLEGO(colornum):
+    """
+    Get the LEGO equivalent to a bricklink color number if it exists
+    :param colornum:
+    :return:
+    """
+    default = {'name': 'Unknown', 'Lego': colornum, 'BrickLink': colornum}
 
-    if colornum > -1:
-        web_driver.get(partURL)
-        delay = 60 # seconds
-        myElem = None
-        try:
-            available_colors=web_driver.find_elements_by_class_name("swatch-option")
+    if colornum < 0:
+        return default
     
-            for i in available_colors:
-                title = i.get_attribute('aria-label')
-                logging.info(f"checking {title} for: {colornum}")
-                if title.startswith(f"{colornum}-"):
-                    logging.info(f"Found it")
-                    return True
+    for color in color_data:
+        if color_data[color]["BrickLink"] == colornum:
+            return color_data[color]
 
-        except TimeoutException:
-            print("Could not get color information.  This may be because the page load timed out or because the page is for a single color.")
-
-        except Exception as ex:
-            print(f"{ex}")
-    
-    logging.info(f"Nope")
-    return False 
+    return default
 
 def countFileLines(file_path):
     # open file in read mode
@@ -76,22 +74,6 @@ def countXMLTags(file_path):
         data = xml_file.read()
         dom = parseString(data)
         return len(dom.getElementsByTagName('ITEM'))
-
-# bricklink colors
-# https://www.bricklink.com/catalogColors.asp
-# colors in table like this:
-# <tr>
-#   <td align="RIGHT"><font face="Tahoma,Arial" size="2">1&nbsp;</font></td>  << BRICKLINK NUMBER
-#   <td bgcolor="FFFFFF"><a href="/catalogList.asp?v=2&amp;colorID=1"><img src="/images/dot.gif" width="15" height="15" border="0"></a></td>
-#   <td><img src="/images/dot.gif" width="3" height="1"></td>
-#   <td><font face="Tahoma,Arial" size="2">White&nbsp;</font></td>  << BRICKLINK COLOR NAME
-#   <td align="RIGHT"><font face="Tahoma,Arial" size="2">&nbsp;<a href="/catalogList.asp?catType=P&amp;colorPart=1&amp;v=3">12985</a>&nbsp;</font></td>
-#   <td align="RIGHT"><font face="Tahoma,Arial" size="2">&nbsp;<a href="/catalogList.asp?catType=S&amp;colorInSet=1&amp;v=3">9684</a>&nbsp;</font></td>
-#   <td align="RIGHT"><font face="Tahoma,Arial" size="2">&nbsp;<a href="/catalogList.asp?catType=P&amp;viewWanted=Y&amp;colorWanted=1&amp;dispView=W&amp;dispColor=1&amp;v=3">18457</a>&nbsp;</font></td>
-#   <td align="RIGHT"><font face="Tahoma,Arial" size="2">&nbsp;<a href="/browseList.asp?colorID=1&amp;itemType=P&amp;v=3">13045</a>&nbsp;</font></td>
-#   <td align="RIGHT"><font face="Tahoma,Arial" size="2">&nbsp;1949&nbsp;-&nbsp;2021&nbsp;</font></td>
-# </tr>
-# Perhaps I can match basedon name to get to the lego color?
 
 class Color:
 
@@ -131,7 +113,7 @@ class Part:
 
     def __init__(self, partID, partColor, partQty):
         rb_part = get_rebrickable_details(partID)
-        rb_LegoColor = rebrickableColorToLEGO(partColor)
+        rb_LegoColor = colorToLEGO(partColor, brickLinkColors)
         self._ID = partID
         self._rootID = getPartRoot(partID)
         self._altIDs = rb_part['altIDs']
@@ -302,6 +284,7 @@ def getPartRoot(partID):
     
     return rootPartID
 
+
 def get_rebrickable_details(partNum):
     rootID = getPartRoot(partNum)
     details = {}
@@ -309,6 +292,7 @@ def get_rebrickable_details(partNum):
     alternates.append(rootID)
     alternates.append(partNum)
     partName = 'Unknown'
+    tryBrickLink = True
 
     try:
         headers = {'Accept': 'application/json', 'Authorization': 'key ' + RB_API_KEY}
@@ -319,11 +303,54 @@ def get_rebrickable_details(partNum):
         partName = partData['name']
         alternates = partData['molds']
         alternates.insert(0, rootID)
-    except HTTPError as e:
-        print(f"Rebrickable doesn't recognize part {partNum}")
+        for alt in partData["external_ids"]:
+            alternates = alternates + partData['external_ids'][alt]
 
+        tryBrickLink = False
+    except HTTPError as e:
+        logging.info(f"Rebrickable doesn't recognize part {partNum}")
     except URLError:
         print(f"{partNum} : Server down or incorrect domain")
+
+    if tryBrickLink:
+        try:
+            headers = {'User-Agent': 'conado-bricks script'}
+            reg_url = f"https://www.bricklink.com/v2/catalog/catalogitem.page?P={partNum}"
+            req = Request(url=reg_url, headers=headers)
+            html = urlopen(req)
+
+            res = BeautifulSoup(html.read(),"html5lib")
+
+            tags = res.findAll("section", {"id": "content"})
+
+            # If there's one of those we got results
+            if len(tags) > 0:
+                logging.info(f"Bricklink recognizes part {partNum}")
+                partName = res.findAll("title")[0].text
+                # 'BrickLink - Part 3648 : LEGO Technic, Gear 24 Tooth (2nd Version - 1 Axle Hole) [Technic, Gear] - BrickLink Reference Catalog'
+                partName = re.sub('BrickLink - Part .+ : ', '', partName)
+                partName = re.sub(' - BrickLink Reference Catalog', '', partName)
+                # 'LEGO Technic, Gear 24 Tooth (2nd Version - 1 Axle Hole) [Technic, Gear]'
+                # I'm sure this isn't brittle at all.
+
+                tags = res.findAll("span")
+                for tag in tags:
+                    # gather any alternates
+                    if tag.text.__contains__('Alternate Item No'):
+                        logging.info(f"Bricklink alternates found for part {partNum}")
+                        # Item No: 4265c  Alternate Item No: 32123,  42136
+                        parts = tag.text.split('Alternate Item No: ')
+                        tempNums = parts[1].split(',')
+                        altNums = []
+                        # 32123,  42136
+                        for thing in tempNums:
+                            altNums.append(thing.lstrip())
+
+                        uniques = set( altNums + alternates )
+                        alternates = uniques
+
+        except HTTPError as e:
+            print(f"Bricklink doesn't recognize part {partNum}")
 
     details['name'] = partName
     alternates = list(dict.fromkeys(alternates))
@@ -335,19 +362,24 @@ def get_rebrickable_colors():
     
     try:
         headers = {'Accept': 'application/json', 'Authorization': 'key ' + RB_API_KEY}
-        reg_url = f"https://rebrickable.com/api/v3/lego/colors/"
+        reg_url = f"https://rebrickable.com/api/v3/lego/colors/?page_size=200"
         req = Request(url=reg_url, headers=headers) 
         resp = urlopen(req)
-        colorData = json.loads(resp.read())
-        allColors = colorData["results"]
+        tempData = json.loads(resp.read())
+        allColors = tempData["results"]
         for color in allColors:
             sub = {}
             if color['id'] > -1:
                 sub['name'] = color["name"]
+                sub["Rebrickable"] = color['id']
                 try:
                     sub["Lego"] = color["external_ids"]["LEGO"]["ext_ids"][0]
                 except KeyError:
                     sub["Lego"] = -1
+                try:
+                    sub["BrickLink"] = color["external_ids"]["BrickLink"]["ext_ids"][0]
+                except KeyError:
+                    sub["BrickLink"] = -1
                 if sub["Lego"] > -1:
                     colorData[color['id']] = sub
     except HTTPError as e:
@@ -420,7 +452,6 @@ def getColorDataOutOfPage(res2):
     return colorswatches
 
 def firstLevelCheck(thePart, doublecheck=False):
-    logging.info(f"---------------------------------------------------")
     logging.info(f"Begin check for {thePart.ID} in color {thePart.color.ID} ({thePart.LEGOColor.ID}) ")
     partQty = thePart.qty
 
@@ -594,6 +625,13 @@ def handleResults(thePart, idx, ct):
     reportResults(thePart, idx, ct)
     partList.append(thePart)
 
+def processPart(partID, partColor, partQty, lineIdx, numLines):
+    logging.info(f"-- Begin loop for part {partID} quantity {partQty} in color {partColor} ---")
+    thePart = getPartInfo(partID, partColor, partQty)
+
+    handleResults(thePart, lineIdx, numLines)
+    logging.info(f"--- Done ---")
+
 def processFile(file_name):
 
     print(f"\n\n================\nProcessing {file_name}\n================")
@@ -630,13 +668,11 @@ def processFile(file_name):
             try:
                 partColor = int(part.find('COLOR').text)
             except:
-                partColor = -1
-                # This is probably not going to be found, as it's a sticker sheet or the like
+                partColor = 9999
+                # If there's no color, default to ANY
             partQty = int(part.find('MINQTY').text)
 
-            thePart = getPartInfo(partID, partColor, partQty)
-
-            handleResults(thePart, lineIdx, numLines)
+            processPart(partID, partColor, partQty, lineIdx, numLines)
 
     else:
         lineIdx = 0
@@ -653,9 +689,7 @@ def processFile(file_name):
                 partColor = int(values[1])
                 partQty = int(values[2].rstrip())
 
-            thePart = getPartInfo(partID, partColor, partQty)
-
-            handleResults(thePart, lineIdx, numLines)
+            processPart(partID, partColor, partQty, lineIdx, numLines)
 
         infile.close()
 
@@ -666,10 +700,10 @@ def processFile(file_name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='vonado-bricks')
     parser.add_argument('-i','--input', help='Input file name',required=True)
-    # parser.add_argument('-r','--rb-api', help='Rebrickable API key',required=True)
-    # parser.add_argument('-b','--browser', help='Browser to use',required=True, choices=['chrome', 'firefox', 'edge'])
-    # parser.add_argument('-p','--primary', help='Site to search first',required=True, choices=['webrick', 'vonado'])
+    parser.add_argument('-l','--bricklink', help='XML is from Bricklink',required=False)
     args = parser.parse_args()
+    try:
+        brickLinkColors = bool(args.bricklink)
+    except:
+        brickLinkColors = False
     processFile(args.input)
-    if web_driver is not None:
-       web_driver.close()
