@@ -314,7 +314,7 @@ def get_rebrickable_details(partNum):
 
     if tryBrickLink:
         try:
-            headers = {'User-Agent': 'conado-bricks script'}
+            headers = {'User-Agent': 'vonado-bricks'}
             reg_url = f"https://www.bricklink.com/v2/catalog/catalogitem.page?P={partNum}"
             req = Request(url=reg_url, headers=headers)
             html = urlopen(req)
