@@ -16,7 +16,7 @@ This dumb script can help.  It's pretty brittle and works for me.
 - Rebrickable API Key
 
 ## Getting started:
-Clone the repo.
+Clone the repo and cd to that dir.
 ```
 git clone https://github.com/chazlarson/vonado-bricks.git && cd vonado-bricks
 ```
