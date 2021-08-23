@@ -2,12 +2,13 @@ So you have a list of bricks from some MOC or something and you want to find out
 
 There's a lot of them, so all the clicking is a pain.
 
-This dumb script can help.  It's pretty brittle and works for me.
+This dumb script can help.  It works for me and is fairly brittle given that it's scraping websites.
 
 ## Assumptions:
 - You have a list of bricks in one of the following formats:
   - Rebrickable CSV or XML
-  - One Bricklink part ID per line [with a header row]
+  - BrickLink Wanted List XML
+  - One part ID per line [with a header row]
 - Python 3
   - https://www.python.org/
 - git
@@ -16,9 +17,11 @@ This dumb script can help.  It's pretty brittle and works for me.
 - Rebrickable API Key
 
 ## Getting started:
+I'm assuming that you can get Python 3 nd Git installed on your own.
+
 Clone the repo and cd to that dir.
 ```
-git clone https://github.com/chazlarson/vonado-bricks.git && cd vonado-bricks
+git clone https://github.com/chazlarson/brick-finder.git && cd brick-finder
 ```
 
 Create an environment file at `.env`:
@@ -42,6 +45,7 @@ input.bricklink.xml.sample  # Bricklink Wanted List XML
 ```
 
 The sample input file contains a few different cases:
+[recent changes have apparently "fixed" some of these cases, so I need to find new parts that show some of these issues]
 ```
 Part,Color,Quantity
 32064a,4,81  # part not available on webrick, available on vonado with correct color
@@ -55,13 +59,13 @@ Part,Color,Quantity
 
 Create and activate a virtual environment:
 ```
-python3 -m venv vonado-bricks
-source vonado-bricks/bin/activate
+python3 -m venv brick-finder
+source brick-finder/bin/activate
 ```
 Windows?
 ```
-python -m venv vonado-bricks
-vonado-bricks\Scripts\activate
+python -m venv brick-finder
+brick-finder\Scripts\activate
 ```
 
 install the requirements:
@@ -71,16 +75,16 @@ pip install -r requirements.txt
 
 Run the script:
 ```
-python vonado-bricks.py -i input.txt.sample
+python brick-finder.py -i input.txt.sample
 ```
 If the input file is a Bricklink Wanted List XML, you need to specify `-l True` to tell the script that the input file contains Bricklink color numbers.
 ```
-python vonado-bricks.py -i input.bricklink.xml.sample -l True
+python brick-finder.py -i input.bricklink.xml.sample -l True
 ```
 
 The terminal output shows Bricklink ID, URL, color status [or "Part Not Found":
 ```
-$ python vonado-bricks.py -i input.txt.sample
+$ python brick-finder.py -i input.txt.sample
 
 ================
 Processing input.txt.sample

@@ -2,8 +2,8 @@
 
 clear
 echo "Setting up virtual environment"
-python3 -m venv vonado-brick-test-env
-source vonado-brick-test-env/bin/activate
+python3 -m venv brick-finder-test-env
+source brick-finder-test-env/bin/activate
 
 echo "-----------------------------------------"
 echo "Installing requirements"
@@ -15,7 +15,7 @@ echo "running minimal file"
 echo "input file:"
 cat input-minimal.txt.sample
 echo "Running script:"
-python vonado-bricks.py -i input-minimal.txt.sample
+python brick-finder.py -i input-minimal.txt.sample
 echo "output file:"
 cat input-minimal.txt-output.txt
 cp app.log input-minimal.txt.log
@@ -25,7 +25,7 @@ echo "running Rebrickable csv"
 echo "input file:"
 cat input.txt.sample
 echo "Running script:"
-python vonado-bricks.py -i input.txt.sample
+python brick-finder.py -i input.txt.sample
 echo "output file:"
 cat input.txt-output.txt
 cp app.log input.txt.log
@@ -35,7 +35,7 @@ echo "running Rebrickable XML"
 echo "input file:"
 cat input.xml.sample
 echo "Running script:"
-python vonado-bricks.py -i input.xml.sample
+python brick-finder.py -i input.xml.sample
 echo "output file:"
 cat input.xml-output.txt
 cp app.log input.xml.log
@@ -45,12 +45,12 @@ echo "running BrickLink Wanted List XML"
 echo "input file:"
 cat input.bricklink.xml.sample
 echo "Running script:"
-python vonado-bricks.py -i input.bricklink.xml.sample -l True
+python brick-finder.py -i input.bricklink.xml.sample -l True
 echo "output file:"
 cat input.bricklink.xml-output.txt
 cp app.log input.bricklink.xml.log
 
 echo "-----------------------------------------"
 echo "cleaning up"
-rm -fr vonado-brick-test-env
+rm -fr brick-finder-test-env
 rm -f input*-output.txt
