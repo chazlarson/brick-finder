@@ -451,14 +451,14 @@ def getColorDataOutOfPage(res2):
 
     return colorswatches
 
-def firstLevelCheck(thePart, doublecheck=False):
+def firstLevelCheck(thePart):
     logging.info(f"Begin check for {thePart.ID} in color {thePart.color.ID} ({thePart.LEGOColor.ID}) ")
     partQty = thePart.qty
 
     for vnd in vendors:
         for partNum in thePart.altIDs:
-            if not thePart.available:
-                logging.info(f"part not found yet; checking {vnd.name} for: {thePart.ID} as {partNum}")
+            if not thePart.available or not thePart.colorAvailable :
+                logging.info(f"part not found in correct color; checking {vnd.name} for: {thePart.ID} as {partNum}")
                 try:
                     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.3'}
                     reg_url = vnd.searchURL + partNum
@@ -564,9 +564,9 @@ def firstLevelCheck(thePart, doublecheck=False):
 
                                         total_price = lotCount * unit_price
 
-                                        if (not doublecheck) or (foundColor and doublecheck):
+                                        if (not thePart.available) or (foundColor and thePart.available):
                                             logging.info(f"Found instance of {thePart.ID}.")
-                                            if doublecheck:
+                                            if thePart.available:
                                                 logging.info(f"Previous instance was wrong color.")
                                             thePart.colorAvailable = foundColor
                                             thePart.available = True
