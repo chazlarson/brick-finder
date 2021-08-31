@@ -236,13 +236,10 @@ In the "Any Color" case, it loops through all the colors in which the part is av
 
 # Edge cases
 
-There are some oddball parts I'm not handling well; for example:
+There may be some oddball parts I'm not handling well; one old example was:
 https://www.vonado.com/flat-tile-1x2-3069-trans-clear.html
 
-That page has no color chart, and no lot size.  The title of the page seems to indicate it's just one color, and pricing is in line with a lot of 10 of 1x2 plates:
-https://www.vonado.com/plate-1x2-3023.html
-
-so it's not exactly clear what to do with that.  It is the only result for 3069 1x2 tile on either site as of this writing.
+That page has been removed, but it used to have no color chart, and no lot size.  The title of the page listed just one color, and pricing was in line with a lot of 10 of 1x2 plates, so it wasn't exactly clear what to do with that.  At the time it was the only result for 3069 1x2 tile on either site.  It seems like now Vonado has this part in multiple colors.
 
 ## Future possibilities
 
