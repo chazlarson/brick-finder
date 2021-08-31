@@ -246,6 +246,7 @@ so it's not exactly clear what to do with that.  It is the only result for 3069 
 
 ## Future possibilities
 
+- web UI
 - support for other sites
   - ~~webrick [looks to be same site backend as Vonado]~~
   - AliExpress [extracting results will be fragile]
