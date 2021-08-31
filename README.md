@@ -24,7 +24,12 @@ Clone the repo and cd to that dir.
 git clone https://github.com/chazlarson/brick-finder.git && cd brick-finder
 ```
 
-Create an environment file at `.env`:
+Copy the example `.env` file:
+```
+cp .env.example .env
+```
+
+Edit `.env` to insert your rebrickable API key:
 ```
 RB_API_KEY=BINGBANGBOING
 PRIMARY=webrick
