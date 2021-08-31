@@ -19,17 +19,17 @@ This dumb script can help.  It works for me and is fairly brittle given that it'
 ## Getting started:
 I'm assuming that you can get Python 3 and Git installed on your own.
 
-Clone the repo and cd to that dir.
+1. Clone the repo and cd to that dir.
 ```
 git clone https://github.com/chazlarson/brick-finder.git && cd brick-finder
 ```
 
-Copy the example `.env` file:
+2. Copy the example `.env` file:
 ```
 cp .env.example .env
 ```
 
-Edit `.env` to insert your rebrickable API key:
+3. Edit `.env` to insert your rebrickable API key:
 ```
 RB_API_KEY=BINGBANGBOING
 PRIMARY=webrick
@@ -39,9 +39,9 @@ Available settings for `PRIMARY` are:
   webrick [anything else here will search Vonado first]
 ```
 
-There's a `quick-test.sh` that will run through the rest of this for four sample input files [it creates and deletes the venv] if you just want to watch it.  Note that if you want to check the log for the logic behind the results below, make sure `PRIMARY=webrick`; you will see that these "not found here but found there" test cases depend on webrick being searched first.
+> There's a `quick-test.sh` that will run through the rest of this for four sample input files [it creates and deletes the venv] if you just want to watch it.  Note that if you want to check the log for the logic behind the results below, make sure `PRIMARY=webrick`; you will see that these "not found here but found there" test cases depend on webrick being searched first.
 
-The four sample input files:
+There are four sample input files:
 ```
 input-minimal.txt.sample    # simple list of part numbers, no color or quantity
 input.txt.sample            # Rebrickable inventory csv
@@ -62,7 +62,8 @@ Part,Color,Quantity
 3648,19,22    # Rebrickable doesn't recognize this part, Bricklink does
 ```
 
-Create and activate a virtual environment:
+
+4. Create and activate a virtual environment:
 ```
 python3 -m venv brick-finder
 source brick-finder/bin/activate
@@ -73,12 +74,12 @@ python -m venv brick-finder
 brick-finder\Scripts\activate
 ```
 
-install the requirements:
+5. install the requirements:
 ```
 pip install -r requirements.txt
 ```
 
-Run the script:
+6. Run the script:
 ```
 python brick-finder.py -i input.txt.sample
 ```
@@ -217,7 +218,7 @@ You only want the first, so a match is considered: "contains the part ID, preced
 
 In this specific case, the "moc" filter is redundant, but it could be that some MOC will have the same number as a part, so we explicitly skip them.
 
-If a part is not found on the firs site, then the other is searched.
+If a part is not found on the first site [webrick or vonado], then the other is searched.
 If a part is found on the first site, but not in the desired color, then the second is searched and the part info is only updated if the color is found on the second site.
 
 You may want to search Webricks first because parts are sold by the each there.  Vonado parts are always lots of 10.  Personally I typically order from Vonado since I like building up the stock of spares.
@@ -226,7 +227,7 @@ The script grabs the alternate molds and IDs from rebrickable for each part and 
 
 # Color checking:
 
-Vonado and Webrick appear to use the same server software; there's a javascript tag in the page that contains a JSON object listing available colors and prices for the part.  This script finds that tag, then parses the JSON object to extract color information.  This is of course fragile, but it's the best we have.  A previous version of this script loaded the page through Selenium and foudn the swatch block; that was abandoned since it was slower and didn't provide pricing information.
+Vonado and Webrick appear to use the same server software; there's a javascript tag in the page that contains a JSON object listing available colors and prices for the part.  This script finds that tag, then parses the JSON object to extract color information.  This is of course fragile, but it's the best we have.  A previous version of this script loaded the page through Selenium and dug through the swatch block; that was abandoned since it was slower and didn't provide pricing information.
 
 Webrick, especially, seems to run into sporadic trouble building that JSON object of colors and prices [in this case that script tag contains a PHP error rather than valid JSON].  For this reason, the script tries 12 [twelve] times to load the page and get a valid piece of color-listing JSON.  If that fails, there will be a note to this effect in the console output and the color availability will be "False". 
 
@@ -239,7 +240,7 @@ In the "Any Color" case, it loops through all the colors in which the part is av
 There may be some oddball parts I'm not handling well; one old example was:
 https://www.vonado.com/flat-tile-1x2-3069-trans-clear.html
 
-That page has been removed, but it used to have no color chart, and no lot size.  The title of the page listed just one color, and pricing was in line with a lot of 10 of 1x2 plates, so it wasn't exactly clear what to do with that.  At the time it was the only result for 3069 1x2 tile on either site.  It seems like now Vonado has this part in multiple colors.
+That page has been removed, but it used to have no color chart, and no lot size.  The title of the page listed just one color, and pricing was in line with a lot of 10 of 1x2 plates, so it wasn't exactly clear what to do with that.  At the time it was the only result for 3069 1x2 tile on either site.  It seems like now Vonado ]at least] has this part in multiple colors.
 
 ## Future possibilities
 
@@ -251,6 +252,7 @@ That page has been removed, but it used to have no color chart, and no lot size.
 - Add parts to a shopping cart
 - Read and/or produce Excel docs
 - ~~support for exported BrickLink wanted list XML~~
+- ~~search for alternate brick IDs and molds~~
 - ~~local database to store alternate part numbers~~ [not needed, loaded on the fly]
 - ~~Verify color availability [will require loading the page via selenium since the chart appears to be loaded by JS; also hampered by remarks above about vagary in color names and numbers]~~
 - ~~Calc how many lots you need to buy~~
