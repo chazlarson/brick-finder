@@ -39,7 +39,7 @@ Available settings for `PRIMARY` are:
   webrick [anything else here will search Vonado first]
 ```
 
-> There's a `quick-test.sh` that will run through the rest of this for four sample input files [it creates and deletes the venv] if you just want to watch it.  Note that if you want to check the log for the logic behind the results below, make sure `PRIMARY=webrick`; you will see that these "not found here but found there" test cases depend on webrick being searched first.
+> There's a `quick-test.sh` [or `quick-test.bat`]  that will run through the process for four sample input files [it creates and deletes the venv] if you just want to watch it.  Note that if you want to check the log for the logic behind the results below, make sure `PRIMARY=webrick`; you will see that these "not found here but found there" test cases are assuming webrick is being searched first.
 
 There are four sample input files:
 ```
