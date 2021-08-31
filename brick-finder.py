@@ -627,9 +627,13 @@ def handleResults(thePart, idx, ct):
 
 def processPart(partID, partColor, partQty, lineIdx, numLines):
     logging.info(f"-- Begin loop for part {partID} quantity {partQty} in color {partColor} ---")
-    thePart = getPartInfo(partID, partColor, partQty)
 
-    handleResults(thePart, lineIdx, numLines)
+    if len(partID) == 0:
+        logging.info(f"-- Bblank line found in input file ---")
+    else:
+        thePart = getPartInfo(partID, partColor, partQty)
+        handleResults(thePart, lineIdx, numLines)
+    
     logging.info(f"--- Done ---")
 
 def processFile(file_name):
@@ -679,17 +683,21 @@ def processFile(file_name):
 
         for aline in infile:
             lineIdx = lineIdx + 1
-            values = aline.split(delim)
+            if len(aline) == 1:
+                logging.info(f"-- Blank line found in input file ---")
+                print(f"{lineIdx}/{numLines} - Blank line found in input file")
+            else:
+                values = aline.split(delim)
 
-            partID = values[0].rstrip()
-            partColor = -1
-            partQty = 0
+                partID = values[0].rstrip()
+                partColor = -1
+                partQty = 0
 
-            if len(values) > 1:
-                partColor = int(values[1])
-                partQty = int(values[2].rstrip())
+                if len(values) > 1:
+                    partColor = int(values[1])
+                    partQty = int(values[2].rstrip())
 
-            processPart(partID, partColor, partQty, lineIdx, numLines)
+                processPart(partID, partColor, partQty, lineIdx, numLines)
 
         infile.close()
 
