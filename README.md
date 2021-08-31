@@ -57,9 +57,9 @@ Part,Color,Quantity
 6060,70,9     # part not available on webrick, available on vonado but not in the requested color
 10169,70,40   # part available on webrick in the wrong color; not available from vonado in correct color, either
 15573,28,17   # part available on webrick under alternate mold
-4732,72,2    # part not available on either
-30374,9999,1 # Part requested in "Any Color"
-3648,19,22   # Rebrickable doesn't recognize this part, Bricklink does
+4732,72,2     # part not available on either
+30374,9999,1  # Part requested in "Any Color"
+3648,19,22    # Rebrickable doesn't recognize this part, Bricklink does
 ```
 
 Create and activate a virtual environment:
