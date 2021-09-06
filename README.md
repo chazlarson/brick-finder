@@ -246,10 +246,11 @@ That page has been removed, but it used to have no color chart, and no lot size.
 ## Future possibilities
 
 - web UI
+- Account for bricks commonly available at Dollar Tree
 - support for other sites
   - ~~webrick [looks to be same site backend as Vonado]~~
   - AliExpress [extracting results will be fragile]
-  - GoBricks [may be a non-starter since it's in Chinese and doesn't appear to use common part numbers]
+  - GoBricks [may be a non-starter since it doesn't appear to use common part or color numbers]
 - Add parts to a shopping cart
 - Read and/or produce Excel docs
 - ~~support for exported BrickLink wanted list XML~~
