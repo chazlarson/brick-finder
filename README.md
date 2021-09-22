@@ -1,4 +1,4 @@
-So you have a list of bricks from some MOC or something and you want to find out which ones are available from Webricks or Vonado.
+So you have a list of bricks from some MOC or something and you want to find out which ones are available from Webricks, Vonado, or your local Dollar Tree.
 
 There's a lot of them, so all the clicking is a pain.
 
@@ -34,6 +34,7 @@ cp .env.example .env
 ```
 RB_API_KEY=BINGBANGBOING
 PRIMARY=webrick
+DOLLAR_TREE_ENABLED=True
 ```
 Available settings for `PRIMARY` are:
 ```
@@ -120,6 +121,25 @@ Part,Color,Quantity,root,LEGOColor,lots,priceColor,priceColorName,unit,total,nam
 3666,9999,15,3666,9999,15,312,Medium Dark Flesh,0.08,1.2,Plate 1 x 6,https://www.webrick.com/plate-1x6-3666.html,True,True
 3648,19,22,3648,5,22,5,Tan,0.1,2.2,"LEGO Technic, Gear 24 Tooth (2nd Version - 1 Axle Hole) [Technic, Gear]",https://www.webrick.com/gear-wheel-z24-3648.html,True,True
 ```
+Columns:
+
+| Column | Meaning |
+| :--- | :--- |
+| Part | Part number as it came from the source |
+| Color | Color number as it came from the source |
+| Quantity | Part quantity as it came from the source |
+| root | Root part number as determined by the script; this is the part number without any printing, mold, or design variation |
+| LEGOColor | The Lego color number corresponding to the supplied color|
+| lots | Count of lots required [mostly for Vonado at this point, since they sell parts in lots of 10] |
+| priceColor | Color number used for pricing [mostly interesting in the "Any Color" case, or if the input file uses Bricklink colors] |
+| priceColorName | Name of the pricing color |
+| unit | unit cost|
+| total | total cost [unit cost * lots] |
+| name | Name of part |
+| link | Link to store page |
+| available | Is this part available at all? |
+| color_available | Is this part available in the right color? |
+
 
 There's also a log file that gets recreated with each run, `app.log`:
 ```
@@ -205,6 +225,41 @@ root - INFO - Found instance of 3648.
 root - INFO - --- Done ---
 ```
 
+## Dollar Tree bricks:
+Dollar Tree stores in the US carry "Make-it" brand clone bricks in a limited number of parts and colors.  
+
+For system bricks, there are three different SKUs in-store, with the following contents:
+
+SKU 1 and 2 are typically available in-store in a variety of colors.  This tool only accounts for the online colors until I'm able to come up with a comprehensive list of the in-store colors.  SKU 3 is evenly divided into grey, green, blue, and brown.
+
+| Brick | Name | SKU 1 [48 for $1] | SKU 2 [48 for $1] | SKU 3  [100 for $1] |
+| :--- | :--- | :--- | :--- | :--- |
+| 2456 | 2x6 brick | 6 |  |  |
+| 3001 | 2x4 brick | 10 | 2 | 16 |
+| 3002 | 2x3 brick |  | 3 | 16 |
+| 3003 | 2x2 brick | 6 | 5 | 16 |
+| 3010 | 1x4 brick | 6 | 3 | 16 |
+| 3004 | 1x2 brick |  | 3 | 16 |
+| 3005 | 1x1 brick |  |  | 20 |
+| 3020 | 2x4 plate | 5 | 6 |  |
+| 3021 | 2x3 plate |  | 3 |  |
+| 3022 | 2x2 plate | 5 | 9 |  |
+| 3666 | 1x6 plate | 5 |  |  |
+| 3710 | 1x4 plate | 5 | 8 |  |
+| 3023 | 1x2 plate |  | 6 |  |
+<!-- | 3795 | 2x6 plate |  |  |  | -->
+<!-- | 3024 | 1x1 plate |  |  |  | -->
+
+Online the SKU 2 product shows somewhat different colors if you're buying individually [black, white, red, blue, yellow, green] or by the case [blue, gray, green, red, yellow].  Brown and other colors are typically available in-store, but aren't listed in this tool yet.
+
+The tool also knows about the 32x32 baseplates in blue, brown, gray, and green.
+
+In-store there are also a variety of bags of windows and plants and the like. Those may be added here at some point, but they're pretty ;limited.  For example, there's a bag of "Roofs" which is 4 2x8 plates and 4 6x8 plates for $1.  That's 12.5 cents per brick, which isn't bad, but they're only in reddish brown.
+
+If "DOLLAR_TREE_ENABLED" is set to true in your env, these parts will be called out as available at Dollar Tree and the web search won't get run.
+
+Note that this will throw off pricing, since these bricks are priced individually even though they're not available individually. Future plans are to track how many packages are needed, combining all the Dollar Tree bricks.  For example, if you need 25 2x4 bricks, 8 1x6 plates, and 10 2x4 plates in blue, you need three of the one Dollar Tree bag for a total of $3 rather than 43 individual bricks for 86 cents.
+
 ## Notes:
 
 This script invokes a search just like the search field on Webricks and Vonado [sequence depends on the `PRIMARY` setting] website.  If there are results returned, it then looks through them for a result where the part URL contains the part ID (without additional numbers) and does not contain "moc".  For example, if you're searching for "3004" you'll get these results:
@@ -243,15 +298,20 @@ https://www.vonado.com/flat-tile-1x2-3069-trans-clear.html
 
 That page has been removed, but it used to have no color chart, and no lot size.  The title of the page listed just one color, and pricing was in line with a lot of 10 of 1x2 plates, so it wasn't exactly clear what to do with that.  At the time it was the only result for 3069 1x2 tile on either site.  It seems like now Vonado ]at least] has this part in multiple colors.
 
-## Future possibilities
+## Roadmap
 
+Features
 - web UI
-- Account for bricks commonly available at Dollar Tree
+- ~~Support Dollar Tree~~
+  - Merge Dollar Tree SKU quantities [you have to buy a bag of 48 assorted bricks]
+  - Expand Dollar Tree part availability list [add standard window, roof, etc bags]
+  - include bricks in prepackaged sets
+- compare against your own spares collection
 - support for other sites
   - ~~webrick [looks to be same site backend as Vonado]~~
-  - AliExpress [extracting results will be fragile]
+  - AliExpress [extracting results will be even more fragile; maybe focus on specific stores]
   - GoBricks [may be a non-starter since it doesn't appear to use common part or color numbers]
-- Add parts to a shopping cart
+- Add parts to a shopping cart [seems dicey]
 - Read and/or produce Excel docs
 - ~~support for exported BrickLink wanted list XML~~
 - ~~search for alternate brick IDs and molds~~
@@ -262,3 +322,6 @@ That page has been removed, but it used to have no color chart, and no lot size.
 - ~~Calc ballpark cost~~
 - ~~account for varying prices per part~~
 - ~~pick the cheapest color for "Any Color" parts~~
+
+Tech Debt:
+- refactor into modules
