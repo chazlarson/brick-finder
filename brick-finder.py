@@ -14,9 +14,13 @@ import xml.etree.cElementTree as ET
 from xml.dom.minidom import parseString
 from dotenv import load_dotenv
 
+from dollartree import isDTBrick
+
 load_dotenv()  # take environment variables from .env.
 
 RB_API_KEY = os.getenv('RB_API_KEY')
+PRIMARY = os.getenv('PRIMARY')
+DOLLAR_TREE_ENABLED = os.getenv('DOLLAR_TREE_ENABLED')
 
 logging.basicConfig(level=logging.DEBUG, filename='app.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
 
@@ -455,8 +459,18 @@ def firstLevelCheck(thePart):
     logging.info(f"Begin check for {thePart.ID} in color {thePart.color.ID} ({thePart.LEGOColor.ID}) ")
     partQty = thePart.qty
 
+    if DOLLAR_TREE_ENABLED and isDTBrick(thePart.ID, thePart.color.ID):
+        logging.info(f"Dollar Tree carries {thePart.ID} in color {thePart.color.ID} ({thePart.LEGOColor.ID}) ")
+        thePart.available = True
+        thePart.colorAvailable = True
+        thePart.lotCount = partQty//1
+        thePart.unit_price = round(1/48,2)
+        thePart.total_price = round(thePart.lotCount * thePart.unit_price,2)
+        thePart.link = "https://www.dollartree.com/make-it-blocks-assorted-building-blocks-48ct-packs/269130"
+
     for vnd in vendors:
         for partNum in thePart.altIDs:
+
             if not thePart.available or not thePart.colorAvailable :
                 logging.info(f"part not found in correct color; checking {vnd.name} for: {thePart.ID} as {partNum}")
                 try:
@@ -562,7 +576,8 @@ def firstLevelCheck(thePart):
                                             logging.error(f"Could not find color information in page after {idx} tries.")
                                             print(f"No color data for {partNum} after {idx} tries.")
 
-                                        total_price = lotCount * unit_price
+                                        unit_price = round(unit_price,2)
+                                        total_price = round(lotCount * unit_price,2)
 
                                         if (not thePart.available) or (foundColor and thePart.available):
                                             logging.info(f"Found instance of {thePart.ID}.")
@@ -613,7 +628,7 @@ def reportResults(thePart, idx, ct):
 def writeResults(thePartList, file_name, headers, delim):
 
     p = PurePath(file_name)
-    output_name=f"{p.root}{p.stem}-output.txt"
+    output_name=f"./{p.stem}-output.txt"
 
     with open(output_name, 'wt') as csv_file:
         wr = csv.writer(csv_file, delimiter=delim)
@@ -700,7 +715,19 @@ def processFile(file_name):
                 processPart(partID, partColor, partQty, lineIdx, numLines)
 
         infile.close()
+    
+    totalCost = 0
+    foundParts = 0
+    foundUnits = 0
 
+    for part in partList:
+        totalCost += part.total_price
+        if part.available:
+            foundParts += 1
+            foundUnits += part.qty
+        
+    print(f"Ballpark cost for {foundUnits} bricks of {foundParts} types is {totalCost}")
+    
     headers = getHeaders(firstline, delim)
     
     writeResults(partList, file_name, headers, delim)
