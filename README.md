@@ -18,19 +18,51 @@ This dumb script can help.  It works for me and is fairly brittle given that it'
 - Running Mac OS X, Linux, Windows
 
 ## Getting started:
-I'm assuming that you can get Python 3 and Git installed on your own.
+I'm assuming that you can get [Python 3](https://www.python.org/downloads/) and [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) installed on your own.
+
+This script runs in the terminal or command prompt.  Below, everything that `looks like this` can be copy-pasted into your terminal or command prompt to do that step.  The Windows stuff is pretty standard, but it does see far less testing than Linux or OS X, so if issues come up don't hesitate to let me know so I can adjust this doc.
 
 1. Clone the repo and cd to that dir.
 ```
 git clone https://github.com/chazlarson/brick-finder.git && cd brick-finder
 ```
 
+<details>
+  <summary>Windows</summary>
+  <br />
+
+  ```
+  git clone https://github.com/chazlarson/brick-finder.git
+  cd brick-finder
+  ```
+</details>
+
 2. Copy the example `.env` file:
 ```
 cp .env.example .env
 ```
+<details>
+  <summary>Windows</summary>
+  <br />
+
+  ```
+  copy .env.example .env
+  ```
+</details>
 
 3. Edit `.env` to insert your rebrickable API key:
+```
+nano .env
+```
+<details>
+  <summary>Windows</summary>
+  <br />
+
+  ```
+  notepad .env
+  ```
+</details>
+
 ```
 RB_API_KEY=BINGBANGBOING
 PRIMARY=webrick
@@ -65,16 +97,21 @@ Part,Color,Quantity
 ```
 
 
-4. Create and activate a virtual environment:
+1. Create and activate a virtual environment:
 ```
 python3 -m venv brick-finder
 source brick-finder/bin/activate
 ```
-Windows?
-```
-python -m venv brick-finder
-brick-finder\Scripts\activate
-```
+
+<details>
+  <summary>Windows</summary>
+  <br />
+
+  ```
+  python -m venv brick-finder
+  brick-finder\Scripts\activate
+  ```
+</details>
 
 5. install the requirements:
 ```
@@ -85,6 +122,8 @@ pip install -r requirements.txt
 ```
 python brick-finder.py -i input.txt.sample
 ```
+Of course, you can replace `input.txt.sample` with the downloaded inventory file you are interested it.
+
 If the input file is a Bricklink Wanted List XML, you need to specify `-l True` to tell the script that the input file contains Bricklink color numbers.
 ```
 python brick-finder.py -i input.bricklink.xml.sample -l True
