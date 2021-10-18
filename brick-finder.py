@@ -123,6 +123,7 @@ class Part:
         self._altIDs = rb_part['altIDs']
         self._qty = partQty
         self._color = Color(partColor, rb_LegoColor['name'])
+        self._printed = partID.__contains__('pr')
         self._LEGOColor = Color(rb_LegoColor['Lego'], rb_LegoColor['name'])
         self._priceColor = Color(partColor, rb_LegoColor['name'])
         self._lotCount = 0
@@ -161,6 +162,14 @@ class Part:
     @altIDs.setter
     def altIDs(self, a):
         self._altIDs = a
+
+    @property
+    def printed(self):
+        return self._printed
+       
+    @printed.setter
+    def printed(self, a):
+        self._printed = a
 
     @property
     def color(self):
@@ -716,16 +725,35 @@ def processFile(file_name):
 
         infile.close()
     
+    totalParts = 0
+    totalBricks = 0
+    totalPrints = 0
     totalCost = 0
     foundParts = 0
     foundUnits = 0
+    correctColorParts = 0
+    correctColorBricks = 0
 
     for part in partList:
+        totalParts += 1
+        totalBricks += part.qty
         totalCost += part.total_price
+
+        if part.printed:
+            totalPrints += 1
+        
         if part.available:
             foundParts += 1
             foundUnits += part.qty
+
+        if part.colorAvailable:
+            correctColorParts  += 1
+            correctColorBricks += part.qty
         
+    print(f"\n\nFinished processing {file_name}:")
+    print(f"Found {foundParts} of {totalParts} types")
+    print(f"Of these, {correctColorParts} of {foundParts} are the correct color")
+    print(f"List contains {totalPrints} printed parts; if found here they will likely not be printed")
     print(f"Ballpark cost for {foundUnits} bricks of {foundParts} types is {totalCost}")
     
     headers = getHeaders(firstline, delim)
