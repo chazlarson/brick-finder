@@ -2,3 +2,6 @@ beautifulsoup4
 html5lib
 detect_delimiter
 python-dotenv
+flake8
+black
+pre-commit
