@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import math
 from pathlib import PurePath
 from bs4 import BeautifulSoup
 from detect_delimiter import detect
@@ -139,6 +140,7 @@ class Part:
         self._LEGOColor = Color(rb_LegoColor["Lego"], rb_LegoColor["name"])
         self._priceColor = Color(partColor, rb_LegoColor["name"])
         self._lotCount = 0
+        self._extraCount = 0
         self._unit_price = 0
         self._total_price = 0
         self._link = ""
@@ -245,6 +247,14 @@ class Part:
     @lotCount.setter
     def lotCount(self, a):
         self._lotCount = a
+
+    @property
+    def extraCount(self):
+        return self._extraCount
+
+    @extraCount.setter
+    def extraCount(self, a):
+        self._extraCount = a
 
     @property
     def unit_price(self):
@@ -532,7 +542,7 @@ def firstLevelCheck(thePart):  # noqa: C901
         )
         thePart.available = True
         thePart.colorAvailable = True
-        thePart.lotCount = partQty // 1
+        thePart.lotCount = math.ceil(partQty / 1)
         thePart.unit_price = round(1 / 48, 2)
         thePart.total_price = round(thePart.lotCount * thePart.unit_price, 2)
         thePart.link = "https://www.dollartree.com/make-it-blocks-assorted-building-blocks-48ct-packs/269130"
@@ -597,7 +607,12 @@ def firstLevelCheck(thePart):  # noqa: C901
                                         total_price = 0
                                         foundColor = False
                                         priceColor = thePart.LEGOColor
-                                        lotCount = partQty // vnd.skuQty
+                                        lotCount = math.ceil(
+                                            partQty / vnd.skuQty
+                                        )
+                                        extraCount = (
+                                            lotCount * vnd.skuQty
+                                        ) - partQty
 
                                         if partQty % vnd.skuQty > 0:
                                             lotCount = lotCount + 1
@@ -767,6 +782,7 @@ def firstLevelCheck(thePart):  # noqa: C901
                                             thePart.available = True
                                             thePart.priceColor = priceColor
                                             thePart.lotCount = lotCount
+                                            thePart.extraCount = extraCount
                                             thePart.unit_price = unit_price
                                             thePart.total_price = total_price
                                             thePart.link = link
@@ -910,6 +926,7 @@ def processFile(file_name):
     totalCost = 0
     foundParts = 0
     foundUnits = 0
+    extraUnits = 0
     correctColorParts = 0
     correctColorBricks = 0
 
@@ -924,12 +941,16 @@ def processFile(file_name):
         if part.available:
             foundParts += 1
             foundUnits += part.qty
+            extraUnits += part.extraCount
 
         if part.colorAvailable:
             correctColorParts += 1
             correctColorBricks += part.qty
 
+    purchasedParts = foundUnits + extraUnits
+
     print(f"\n\nFinished processing {file_name}:")
+    print(f"Set uses {foundUnits} bricks of {totalParts} part types")
     print(f"Found {foundParts} of {totalParts} part types")
     for row in vendorCounts:
         if vendorCounts[row] > 0:
@@ -942,8 +963,13 @@ def processFile(file_name):
             f"List contains {totalPrints} printed parts; if shown as found they will likely not be printed"
         )
     print(
-        f"Ballpark cost for {foundUnits} bricks of {foundParts} part types is {totalCost:.2f}"
+        f"Ballpark cost for {purchasedParts} bricks of {foundParts} part types is {totalCost:.2f}"
     )
+    print(f"Unit price of {totalCost/purchasedParts:.2f} per brick")
+    if extraUnits > 0:
+        print(
+            f"This includes {extraUnits} extra pieces due to vendor lot size."
+        )
 
     headers = getHeaders(firstline, delim)
 
