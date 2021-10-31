@@ -133,6 +133,7 @@ class Part:
         rb_LegoColor = colorToLEGO(partColor, brickLinkColors)
         self._ID = partID
         self._rootID = getPartRoot(partID)
+        self._foundID = getPartRoot(partID)
         self._altIDs = rb_part["altIDs"]
         self._qty = partQty
         self._color = Color(partColor, rb_LegoColor["name"])
@@ -155,6 +156,8 @@ class Part:
                 self._color.ID,
                 self._qty,
                 self._rootID,
+                self._foundID,
+                self._altIDs,
                 self._LEGOColor.ID,
                 self._lotCount,
                 self._priceColor.ID,
@@ -183,6 +186,14 @@ class Part:
     @rootID.setter
     def rootID(self, a):
         self._rootID = a
+
+    @property
+    def foundID(self):
+        return self._foundID
+
+    @foundID.setter
+    def foundID(self, a):
+        self._foundID = a
 
     @property
     def altIDs(self):
@@ -499,6 +510,8 @@ def getHeaders(firstline, delim):
             headers.append("qty")
 
     headers.append("root")
+    headers.append("foundID")
+    headers.append("altIDs")
     headers.append("LEGOColor")
     headers.append("lots")
     headers.append("priceColor")
@@ -771,13 +784,14 @@ def firstLevelCheck(thePart):  # noqa: C901
                                             foundColor and thePart.available
                                         ):
                                             logging.info(
-                                                f"Found instance of {thePart.ID}."
+                                                f"Found instance of {thePart.ID} as {partNum}."
                                             )
                                             vendorCounts[vnd.name] += 1
                                             if thePart.available:
                                                 logging.info(
                                                     "Previous instance was wrong color."
                                                 )
+                                            thePart.foundID = partNum
                                             thePart.colorAvailable = foundColor
                                             thePart.available = True
                                             thePart.priceColor = priceColor
