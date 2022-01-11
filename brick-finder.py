@@ -335,11 +335,11 @@ vendors.append(
     Vendor("Vonado", "https://www.vonado.com/catalogsearch/result/?q=", 10)
 )
 vendorCounts["Vonado"] = 0
-vendors.insert(
-    wbPos,
-    Vendor("Webrick", "https://www.webrick.com/catalogsearch/result/?q=", 1),
-)
-vendorCounts["Webrick"] = 0
+# vendors.insert(
+#     wbPos,
+#     Vendor("Webrick", "https://www.webrick.com/catalogsearch/result/?q=", 1),
+# )
+# vendorCounts["Webrick"] = 0
 
 
 def getPartRoot(partID):
