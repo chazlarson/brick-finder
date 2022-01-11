@@ -1,3 +1,5 @@
+Webrick's site has changed with the addition of "brick source", which breaks my scraping code.  Webrick disabled for the time being.
+
 So you have a list of bricks from some MOC or something and you want to find out which ones are available from Webricks, Vonado, or your local Dollar Tree.
 
 There's a lot of them, so all the clicking is a pain.
