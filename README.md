@@ -1,3 +1,5 @@
+Webrick now has a list-uplaoding feature, and Vonado no longer sells individual parts, so this thing's reason for being is gone.
+
 Webrick's site has changed with the addition of "brick source", which breaks my scraping code.  Webrick disabled for the time being.
 
 So you have a list of bricks from some MOC or something and you want to find out which ones are available from Webricks, Vonado, or your local Dollar Tree.
